@@ -1,0 +1,79 @@
+/* =========================================================
+   Insight Forge — Design Tokens & Global Styles
+   "Editorial fintech" 미적 방향
+   ========================================================= */
+
+:root {
+  /* === 브랜드 컬러 === */
+  --if-navy:        #0F1B3D;
+  --if-navy-soft:   #1A2A5C;
+  --if-cream:       #F5F1E8;
+  --if-cream-hover: #EBE5D5;
+  --if-gold:        #BA7517;
+  --if-gold-light:  #FAEEDA;
+  --if-text:        #0F1B3D;
+  --if-text-muted:  #6B6B6B;
+  --if-text-subtle: #9A9A9A;
+  --if-border:      #D4CFC0;
+  --if-border-strong: #B5AD98;
+  --if-bg:          #FAF8F2;
+
+  /* === 시맨틱 컬러 === */
+  --if-success:    #3B6D11;
+  --if-success-bg: #EAF3DE;
+  --if-warning:    #BA7517;
+  --if-warning-bg: #FAEEDA;
+  --if-danger:     #993C1D;
+  --if-danger-bg:  #FAECE7;
+  --if-info:       #185FA5;
+  --if-info-bg:    #E6F1FB;
+
+  /* === 등급 색상 (0~100점 척도) === */
+  --if-grade-excellent: #43A047;
+  --if-grade-good:      #7CB342;
+  --if-grade-moderate:  #BA7517;
+  --if-grade-warning:   #FB8C00;
+  --if-grade-critical:  #993C1D;
+
+  /* === 타이포 === */
+  --if-font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --if-font-serif: 'Times New Roman', 'Noto Serif KR', Georgia, serif;
+  --if-font-mono: 'JetBrains Mono', 'D2Coding', Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: var(--if-bg);
+  color: var(--if-text);
+  font-family: var(--if-font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+select {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.3); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+}
