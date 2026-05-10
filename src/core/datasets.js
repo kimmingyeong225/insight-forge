@@ -1,9 +1,12 @@
 /**
  * 더미 데이터셋 생성 + 시계열 모의 (지수 기하 브라운 운동)
- * 
+ *
  * default 8종 + crypto 6종 = 총 14가지 시나리오 지원
  * + buildUserDataset() — CSV 업로드 데이터 처리
+ * + fetchRealSeries() / buildLiveDataset() — Yahoo Finance 실시간 연동
  */
+
+import { getYahooSymbol } from './symbolMap.js';
 
 // ============================================================
 // PRNG
@@ -448,4 +451,94 @@ export function buildUserDataset(rawHoldings, bundleId = 'insight-forge-default'
   }
 
   return dataset;
+}
+
+// ============================================================
+// 실시간 데이터 (Yahoo Finance via Vercel Serverless)
+// ============================================================
+
+async function fetchCachedSeries(symbol) {
+  try {
+    const res = await fetch(`/data/cache/${encodeURIComponent(symbol)}.json`);
+    if (!res.ok) throw new Error('cache miss');
+    const data = await res.json();
+    return { success: true, source: 'cache', ...data };
+  } catch {
+    // 캐시도 없으면 GBM 시뮬레이션으로 최종 폴백
+    const sim = gbmSeries(0.10, 0.25, 252, symbol);
+    return {
+      success: false,
+      source: 'simulation',
+      series: sim.map((p, i) => ({
+        date: new Date(Date.now() - (252 - i) * 86400000).toISOString().split('T')[0],
+        close: p.y,
+      })),
+    };
+  }
+}
+
+/**
+ * 단일 종목 시계열 fetch (live → cache → simulation 순으로 폴백)
+ */
+export async function fetchRealSeries(symbol) {
+  try {
+    const res = await fetch(`/api/stock?symbol=${encodeURIComponent(symbol)}&range=1y`);
+    const data = await res.json();
+    if (data.source === 'live' && data.series?.length > 0) {
+      return { success: true, source: 'live', series: data.series, meta: data.meta, fetchedAt: data.fetchedAt };
+    }
+    return fetchCachedSeries(symbol);
+  } catch {
+    return fetchCachedSeries(symbol);
+  }
+}
+
+/**
+ * 복수 종목 실시간 포트폴리오 데이터셋 빌드
+ * @param {Array<{symbol: string, weight: number}>} userHoldings - 종목명 (symbolMap 키 or Yahoo 심볼)
+ */
+export async function buildLiveDataset(userHoldings) {
+  const fetched = await Promise.all(
+    userHoldings.map(async (h) => {
+      const yahooSym = getYahooSymbol(h.symbol);
+      const result = await fetchRealSeries(yahooSym);
+      return { symbol: h.symbol, yahooSym, weight: h.weight, ...result };
+    })
+  );
+
+  const minLength = Math.min(...fetched.map(f => f.series.length));
+
+  // 가중평균 포트폴리오 시계열 (기준가 100 정규화)
+  const portfolioCloses = [];
+  for (let i = 0; i < minLength; i++) {
+    let total = 0;
+    fetched.forEach(f => {
+      const startPrice = f.series[0].close;
+      total += (f.series[i].close / startPrice) * 100 * f.weight;
+    });
+    portfolioCloses.push({ x: i, y: total });
+  }
+
+  const returnsBySymbol = {};
+  fetched.forEach(f => {
+    returnsBySymbol[f.symbol] = f.series.slice(0, minLength).map(s => s.close);
+  });
+
+  const symbolReturns = fetched.map(f => ({
+    name: f.symbol,
+    value: parseFloat(
+      ((f.series[f.series.length - 1].close / f.series[0].close - 1) * 100).toFixed(2)
+    ),
+  }));
+
+  return {
+    name: '실시간 포트폴리오',
+    description: `${userHoldings.length}종목 · Yahoo Finance 기반`,
+    holdings: userHoldings,
+    portfolioCloses,
+    returnsBySymbol,
+    symbolReturns,
+    isLiveData: true,
+    sources: fetched.map(f => ({ symbol: f.symbol, source: f.source })),
+  };
 }

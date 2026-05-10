@@ -1,0 +1,88 @@
+import { useState, useRef, useEffect } from 'react';
+import { SYMBOL_MAP } from '../core/symbolMap.js';
+
+const ALL_NAMES = Object.keys(SYMBOL_MAP);
+
+export default function StockSearch({ onAdd }) {
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setSuggestions([]);
+        setFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleChange = (e) => {
+    const v = e.target.value;
+    setQuery(v);
+    if (v.trim()) {
+      const matched = ALL_NAMES.filter(name =>
+        name.toLowerCase().includes(v.toLowerCase()) ||
+        SYMBOL_MAP[name].toLowerCase().includes(v.toLowerCase())
+      ).slice(0, 8);
+      setSuggestions(matched);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSelect = (name) => {
+    onAdd(name);
+    setQuery('');
+    setSuggestions([]);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && query.trim()) {
+      // 첫 번째 제안 선택 또는 직접 입력
+      if (suggestions.length > 0) {
+        handleSelect(suggestions[0]);
+      } else {
+        onAdd(query.trim());
+        setQuery('');
+      }
+    } else if (e.key === 'Escape') {
+      setSuggestions([]);
+    }
+  };
+
+  return (
+    <div className="if-search" ref={wrapRef}>
+      <input
+        type="text"
+        className="if-search__input"
+        placeholder="종목 검색 (삼성전자, AAPL, BTC...)"
+        value={query}
+        onChange={handleChange}
+        onFocus={() => setFocused(true)}
+        onKeyDown={handleKeyDown}
+        aria-label="종목 검색"
+        aria-autocomplete="list"
+        aria-expanded={suggestions.length > 0}
+      />
+      {focused && suggestions.length > 0 && (
+        <ul className="if-search__suggestions" role="listbox">
+          {suggestions.map(name => (
+            <li
+              key={name}
+              role="option"
+              className="if-search__item"
+              onMouseDown={() => handleSelect(name)}
+            >
+              <span className="if-search__name">{name}</span>
+              <span className="if-search__sym">{SYMBOL_MAP[name]}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

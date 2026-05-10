@@ -17,6 +17,7 @@ import InsightCard from '../components/InsightCard.jsx';
 import SkillsInspector from '../components/SkillsInspector.jsx';
 import Gauge from '../components/Gauge.jsx';
 import DataUploader from '../components/DataUploader.jsx';
+import StockSearch from '../components/StockSearch.jsx';
 
 import './Dashboard.css';
 
@@ -26,6 +27,8 @@ export default function Dashboard() {
     userDataset, isUploaderOpen,
     setBundle, setDataset, setScenario, init,
     openUploader, closeUploader, applyUserData, clearUserData,
+    isLiveMode, isLiveLoading, liveError, liveHoldings,
+    toggleLiveMode, addLiveHolding, removeLiveHolding, applyLiveData,
   } = useStore();
 
   useEffect(() => { init(); }, []);
@@ -89,8 +92,8 @@ export default function Dashboard() {
     const start = closes[0].y;
     return closes
       .filter((_, i) => i % 7 === 0)
-      .map(p => ({
-        label: 'D+' + p.x,
+      .map((p, idx) => ({
+        label: p.date ? p.date.slice(5) : 'D+' + (idx * 7),
         value: parseFloat((((p.y / start) - 1) * 100).toFixed(2)),
       }));
   }, [rawDataset]);
@@ -126,26 +129,76 @@ export default function Dashboard() {
             <option value="insight-forge-default">📊 insight-forge-default · 주식·금융기업</option>
             <option value="insight-forge-crypto">₿ insight-forge-crypto · 암호화폐</option>
           </select>
-          <select
-            className="if-select"
-            value={userDataset ? '__user__' : datasetId}
-            onChange={(e) => {
-              if (e.target.value === '__upload__') {
-                openUploader();
-              } else if (e.target.value !== '__user__') {
-                setDataset(e.target.value);
-              }
-            }}
-            aria-label="데이터셋 선택"
+
+          {/* 데이터 모드 토글 */}
+          <button
+            className={`if-mode-btn ${isLiveMode ? 'is-live' : ''}`}
+            onClick={toggleLiveMode}
+            title={isLiveMode ? '더미 데이터 모드로 전환' : '실시간 데이터 모드로 전환'}
           >
-            {datasetList.map(d => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-            {userDataset && <option value="__user__">📤 {userDataset.name}</option>}
-            <option value="__upload__">⬆ 데이터 업로드...</option>
-          </select>
+            {isLiveMode ? '🔴 실시간' : '⬜ 더미 데이터'}
+          </button>
+
+          {!isLiveMode && (
+            <select
+              className="if-select"
+              value={userDataset ? '__user__' : datasetId}
+              onChange={(e) => {
+                if (e.target.value === '__upload__') {
+                  openUploader();
+                } else if (e.target.value !== '__user__') {
+                  setDataset(e.target.value);
+                }
+              }}
+              aria-label="데이터셋 선택"
+            >
+              {datasetList.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+              {userDataset && <option value="__user__">📤 {userDataset.name}</option>}
+              <option value="__upload__">⬆ 데이터 업로드...</option>
+            </select>
+          )}
         </div>
       </header>
+
+      {/* 실시간 모드 패널 */}
+      {isLiveMode && (
+        <div className="if-live-panel">
+          <div className="if-live-panel__left">
+            <span className="if-live-panel__label">종목 추가</span>
+            <StockSearch onAdd={addLiveHolding} />
+          </div>
+          {liveHoldings.length > 0 && (
+            <div className="if-live-panel__chips">
+              {liveHoldings.map(h => (
+                <span key={h.symbol} className="if-live-chip">
+                  {h.symbol}
+                  <span className="if-live-chip__weight">{(h.weight * 100).toFixed(0)}%</span>
+                  <button
+                    className="if-live-chip__remove"
+                    onClick={() => removeLiveHolding(h.symbol)}
+                    aria-label={`${h.symbol} 제거`}
+                  >×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <button
+            className="if-live-panel__run"
+            onClick={applyLiveData}
+            disabled={liveHoldings.length === 0 || isLiveLoading}
+          >
+            {isLiveLoading ? '⏳ 불러오는 중...' : '▶ 분석 시작'}
+          </button>
+          {liveError && (
+            <div className="if-live-error">
+              ⚠ {liveError}
+              <button className="if-live-error__retry" onClick={applyLiveData}>재시도</button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* BODY */}
       <div className="if-body">
@@ -203,6 +256,16 @@ export default function Dashboard() {
                 {bundle?.id || bundleId} · {rawDataset.name} · 시나리오: {scenario.label}
                 · 데이터 품질 {metrics.data_quality_score}점
               </div>
+              {/* 실시간 데이터 출처 뱃지 */}
+              {rawDataset.sources && (
+                <div className="if-source-badges">
+                  {rawDataset.sources.map(s => (
+                    <span key={s.symbol} className={`if-source-badge if-source-badge--${s.source}`}>
+                      {s.symbol} · {s.source === 'live' ? '실시간' : s.source === 'cache' ? '캐시' : '시뮬'}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
 

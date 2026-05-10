@@ -746,3 +746,220 @@
   background: var(--if-bg);
 }
 
+/* =========================================================
+   B-2: 실시간 데이터 모드 UI
+   ========================================================= */
+
+/* 모드 토글 버튼 */
+.if-mode-btn {
+  padding: 6px 14px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: transparent;
+  color: var(--if-cream);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--if-font-sans);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.if-mode-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+.if-mode-btn.is-live {
+  background: #b91c1c;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+/* 실시간 패널 (헤더 아래 띠) */
+.if-live-panel {
+  background: #0a1428;
+  border-bottom: 1px solid rgba(186,117,23,0.3);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.if-live-panel__label {
+  color: var(--if-gold);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.if-live-panel__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.if-live-panel__run {
+  padding: 6px 18px;
+  background: var(--if-gold);
+  color: var(--if-navy);
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--if-font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.if-live-panel__run:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.if-live-panel__run:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+/* 종목 칩 */
+.if-live-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(186,117,23,0.15);
+  border: 1px solid rgba(186,117,23,0.35);
+  color: var(--if-cream);
+  border-radius: 20px;
+  padding: 3px 10px 3px 10px;
+  font-size: 12px;
+}
+.if-live-chip__weight {
+  color: var(--if-gold);
+  font-size: 11px;
+  margin-left: 2px;
+}
+.if-live-chip__remove {
+  background: none;
+  border: none;
+  color: rgba(245,241,232,0.5);
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  font-size: 13px;
+  line-height: 1;
+}
+.if-live-chip__remove:hover {
+  color: #ef4444;
+}
+
+/* 에러 메시지 */
+.if-live-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fca5a5;
+  font-size: 12px;
+  background: rgba(220,38,38,0.15);
+  border: 1px solid rgba(220,38,38,0.3);
+  border-radius: 4px;
+  padding: 6px 12px;
+}
+.if-live-error__retry {
+  background: none;
+  border: 1px solid rgba(220,38,38,0.5);
+  color: #fca5a5;
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.if-live-error__retry:hover {
+  background: rgba(220,38,38,0.2);
+}
+
+/* === StockSearch === */
+.if-search {
+  position: relative;
+  min-width: 220px;
+}
+.if-search__input {
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: var(--if-cream);
+  font-size: 12px;
+  font-family: var(--if-font-sans);
+  outline: none;
+  box-sizing: border-box;
+}
+.if-search__input::placeholder {
+  color: rgba(245,241,232,0.4);
+}
+.if-search__input:focus {
+  border-color: var(--if-gold);
+}
+.if-search__suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #1a2a4a;
+  border: 1px solid rgba(186,117,23,0.4);
+  border-radius: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  z-index: 100;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.if-search__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--if-cream);
+  transition: background 0.1s;
+}
+.if-search__item:hover {
+  background: rgba(186,117,23,0.2);
+}
+.if-search__name {
+  font-weight: 500;
+}
+.if-search__sym {
+  color: var(--if-gold);
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+}
+
+/* === 데이터 출처 뱃지 === */
+.if-source-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.if-source-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.if-source-badge--live {
+  background: rgba(16,185,129,0.2);
+  border: 1px solid rgba(16,185,129,0.4);
+  color: #6ee7b7;
+}
+.if-source-badge--cache {
+  background: rgba(245,158,11,0.2);
+  border: 1px solid rgba(245,158,11,0.4);
+  color: #fcd34d;
+}
+.if-source-badge--simulation {
+  background: rgba(156,163,175,0.2);
+  border: 1px solid rgba(156,163,175,0.4);
+  color: #d1d5db;
+}
+

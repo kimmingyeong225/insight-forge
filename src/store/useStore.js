@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { loadBundle } from '../core/parser.js';
-import { buildUserDataset } from '../core/datasets.js';
+import { buildUserDataset, buildLiveDataset } from '../core/datasets.js';
 
 export const useStore = create((set, get) => ({
   bundleId: 'insight-forge-default',
@@ -10,8 +10,14 @@ export const useStore = create((set, get) => ({
   isLoading: false,
 
   // 사용자 업로드 데이터
-  userDataset: null,        // 업로드된 데이터셋 객체
+  userDataset: null,
   isUploaderOpen: false,
+
+  // 실시간 모드
+  isLiveMode: false,
+  isLiveLoading: false,
+  liveError: null,
+  liveHoldings: [],   // [{symbol, weight}] — 사용자가 추가한 종목 목록
 
   setBundle: async (bundleId) => {
     set({ bundleId, isLoading: true });
@@ -39,6 +45,62 @@ export const useStore = create((set, get) => ({
   },
 
   clearUserData: () => set({ userDataset: null, datasetId: 'balanced' }),
+
+  // 실시간 모드 토글
+  toggleLiveMode: () => {
+    const { isLiveMode } = get();
+    set({ isLiveMode: !isLiveMode, liveError: null });
+    if (isLiveMode) {
+      // 더미 모드로 복귀 시 live 데이터 지우기
+      set({ userDataset: null, datasetId: 'balanced', liveHoldings: [] });
+    }
+  },
+
+  // 실시간 종목 추가
+  addLiveHolding: (symbol) => {
+    const { liveHoldings } = get();
+    if (liveHoldings.find(h => h.symbol === symbol)) return;
+    const updated = [...liveHoldings, { symbol, weight: 0 }];
+    // 비중 균등 배분
+    const equalWeight = parseFloat((1 / updated.length).toFixed(4));
+    const reweighted = updated.map((h, i) => ({
+      ...h,
+      weight: i === updated.length - 1
+        ? parseFloat((1 - equalWeight * (updated.length - 1)).toFixed(4))
+        : equalWeight,
+    }));
+    set({ liveHoldings: reweighted });
+  },
+
+  removeLiveHolding: (symbol) => {
+    const { liveHoldings } = get();
+    const updated = liveHoldings.filter(h => h.symbol !== symbol);
+    if (updated.length === 0) {
+      set({ liveHoldings: [] });
+      return;
+    }
+    const equalWeight = parseFloat((1 / updated.length).toFixed(4));
+    const reweighted = updated.map((h, i) => ({
+      ...h,
+      weight: i === updated.length - 1
+        ? parseFloat((1 - equalWeight * (updated.length - 1)).toFixed(4))
+        : equalWeight,
+    }));
+    set({ liveHoldings: reweighted });
+  },
+
+  // Yahoo Finance 호출 → live 데이터셋 생성
+  applyLiveData: async () => {
+    const { liveHoldings } = get();
+    if (liveHoldings.length === 0) return;
+    set({ isLiveLoading: true, liveError: null });
+    try {
+      const dataset = await buildLiveDataset(liveHoldings);
+      set({ userDataset: dataset, datasetId: '__live__', isLiveLoading: false });
+    } catch (e) {
+      set({ liveError: e.message, isLiveLoading: false });
+    }
+  },
 
   init: async () => {
     const { bundleId } = get();
