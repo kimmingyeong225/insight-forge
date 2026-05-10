@@ -520,9 +520,11 @@ export async function buildLiveDataset(userHoldings) {
     portfolioCloses.push({ x: i, y: total });
   }
 
+  // 단위가 다른 시계열(원/달러 등)을 기준가 100으로 정규화한 뒤 저장
   const returnsBySymbol = {};
   fetched.forEach(f => {
-    returnsBySymbol[f.symbol] = f.series.slice(0, minLength).map(s => s.close);
+    const start = f.series[0].close;
+    returnsBySymbol[f.symbol] = f.series.slice(0, minLength).map(s => (s.close / start) * 100);
   });
 
   const symbolReturns = fetched.map(f => ({
@@ -534,7 +536,7 @@ export async function buildLiveDataset(userHoldings) {
 
   return {
     name: '실시간 포트폴리오',
-    description: `${userHoldings.length}종목 · Yahoo Finance 기반`,
+    description: `${userHoldings.length}종목 · 실시간 시세 기반`,
     holdings: userHoldings,
     portfolioCloses,
     returnsBySymbol,
