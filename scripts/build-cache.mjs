@@ -67,10 +67,13 @@ async function fetchKrx(symbol) {
   if (!rawItems) throw new Error('KRX: 데이터 없음');
   const items = [].concat(rawItems);
 
-  const series = [...items].reverse().map(v => ({
-    date:  fmtBasDt(v.basDt),
-    close: parseFloat(v.clpr),
-  })).filter(p => !isNaN(p.close));
+  const series = items
+    .map(v => ({
+      date:  fmtBasDt(v.basDt),
+      close: parseFloat(String(v.clpr).replace(/,/g, '')),
+    }))
+    .filter(p => !isNaN(p.close) && p.close > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     symbol,

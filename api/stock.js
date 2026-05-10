@@ -54,11 +54,19 @@ async function fetchKrx(symbol) {
   const items = [].concat(rawItems);
   if (items.length === 0) throw new Error('KRX: 빈 배열');
 
-  // KRX는 최신순 → 역순 정렬
-  const series = [...items].reverse().map(v => ({
-    date:  fmtBasDt(v.basDt),
-    close: parseFloat(v.clpr),
-  })).filter(p => !isNaN(p.close));
+  // 진단 로그 (Vercel 함수 로그에서 확인)
+  const first = items[0];
+  console.log('[KRX] items:', items.length, '| first basDt:', first?.basDt, '| first clpr:', first?.clpr, '| last basDt:', items[items.length - 1]?.basDt);
+
+  const series = items
+    .map(v => ({
+      date:  fmtBasDt(v.basDt),
+      // 콤마 포함 형식("78,500") 대비 → 콤마 제거 후 파싱
+      close: parseFloat(String(v.clpr).replace(/,/g, '')),
+    }))
+    .filter(p => !isNaN(p.close) && p.close > 0)
+    // API 정렬 순서 불확실 → basDt 기준 오름차순(과거→최신) 명시 정렬
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     source: 'live',
