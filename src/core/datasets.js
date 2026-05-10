@@ -459,7 +459,8 @@ export function buildUserDataset(rawHoldings, bundleId = 'insight-forge-default'
 
 async function fetchCachedSeries(symbol) {
   try {
-    const res = await fetch(`/data/cache/${encodeURIComponent(symbol)}.json`);
+    const filename = symbol.replace(/[/.]/g, '_');
+    const res = await fetch(`/data/cache/${filename}.json`);
     if (!res.ok) throw new Error('cache miss');
     const data = await res.json();
     return { success: true, source: 'cache', ...data };

@@ -1,55 +1,50 @@
 export default async function handler(req, res) {
-  const { symbol, range = '1y', interval = '1d' } = req.query;
+  const { symbol, interval = '1day', outputsize = 252 } = req.query;
 
   if (!symbol) {
     return res.status(400).json({ error: 'symbol 파라미터 필요' });
+  }
+
+  const apiKey = process.env.TWELVEDATA_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'TWELVEDATA_API_KEY 환경변수 미설정' });
   }
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
 
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-    });
+    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${apiKey}`;
+    const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Yahoo Finance HTTP ${response.status}`);
+      throw new Error(`Twelve Data HTTP ${response.status}`);
     }
 
     const data = await response.json();
 
-    if (data.chart?.error) {
-      throw new Error(data.chart.error.description || 'Yahoo error');
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Twelve Data error');
     }
 
-    const result = data.chart?.result?.[0];
-    if (!result) {
+    if (!data.values || data.values.length === 0) {
       throw new Error('No data returned');
     }
 
-    const timestamps = result.timestamp || [];
-    const closes = result.indicators?.quote?.[0]?.close || [];
-    const series = timestamps
-      .map((t, i) => ({
-        date: new Date(t * 1000).toISOString().split('T')[0],
-        close: closes[i],
-      }))
-      .filter(p => p.close != null);
+    // Twelve Data는 최신순 → 역순으로 변환 (오래된 것 먼저)
+    const series = [...data.values].reverse().map(v => ({
+      date: v.datetime.slice(0, 10),
+      close: parseFloat(v.close),
+    })).filter(p => !isNaN(p.close));
 
     return res.status(200).json({
       source: 'live',
       symbol,
       meta: {
-        currency: result.meta?.currency,
-        exchangeName: result.meta?.exchangeName,
-        instrumentType: result.meta?.instrumentType,
-        longName: result.meta?.longName,
+        currency: data.meta?.currency,
+        exchangeName: data.meta?.exchange,
+        instrumentType: data.meta?.type,
+        longName: data.meta?.name || symbol,
       },
       series,
       fetchedAt: new Date().toISOString(),
