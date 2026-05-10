@@ -18,22 +18,38 @@ function fmtBasDt(basDt) {
   return `${basDt.slice(0, 4)}-${basDt.slice(4, 6)}-${basDt.slice(6, 8)}`;
 }
 
+// KRX API: 종목코드 → 종목명 (필터 보조용)
+const KRX_NAME_MAP = {
+  '005930': '삼성전자',   '000660': 'SK하이닉스',  '035420': 'NAVER',
+  '035720': '카카오',     '373220': 'LG에너지솔루션','005380': '현대차',
+  '068270': '셀트리온',   '207940': '삼성바이오로직스','005490': 'POSCO홀딩스',
+  '105560': 'KB금융',     '055550': '신한지주',    '086790': '하나금융지주',
+  '006400': '삼성SDI',    '051910': 'LG화학',      '012330': '현대모비스',
+  '000270': '기아',       '247540': '에코프로비엠', '293490': '카카오게임즈',
+  '069500': 'KODEX 200',  '114260': 'KODEX 국고채', '279530': 'KODEX 고배당',
+  '360750': 'TIGER 미국S&P500','091160': 'KODEX 반도체','305720': 'KODEX 2차전지',
+  '133690': 'TIGER 나스닥100',
+};
+
 // ── KRX 공공데이터 API ───────────────────────────────────────
 async function fetchKrx(symbol) {
   const apiKey = process.env.DATA_GO_KR_API_KEY;
   if (!apiKey) throw new Error('DATA_GO_KR_API_KEY 미설정');
 
+  const code = toSrtnCd(symbol);
   const today = new Date();
   const yearAgo = new Date(today);
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
+  // numOfRows를 크게 설정 — API가 전체 종목×날짜 행을 반환하므로
+  // 한 종목의 252일치 데이터를 확보하려면 충분한 row 필요
   const params = new URLSearchParams({
     serviceKey: apiKey,
     resultType:  'json',
-    srtnCd:      toSrtnCd(symbol),
+    srtnCd:      code,
     beginBasDt:  toYMD(yearAgo),
     endBasDt:    toYMD(today),
-    numOfRows:   '252',
+    numOfRows:   '2000',
   });
 
   const url = `https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo?${params}`;
@@ -49,32 +65,46 @@ async function fetchKrx(symbol) {
 
   const rawItems = data.response?.body?.items?.item;
   if (!rawItems) throw new Error('KRX: 데이터 없음');
+  const all = [].concat(rawItems);
 
-  // 단일 아이템일 때 객체로 오는 경우 대비
-  const items = [].concat(rawItems);
-  if (items.length === 0) throw new Error('KRX: 빈 배열');
+  // 진단 로그 (Vercel Functions 탭에서 확인)
+  console.log(`[KRX] total=${all.length} code=${code} first_srtnCd=${all[0]?.srtnCd} first_basDt=${all[0]?.basDt} first_itmsNm=${all[0]?.itmsNm}`);
 
-  // 진단 로그 (Vercel 함수 로그에서 확인)
-  const first = items[0];
-  console.log('[KRX] items:', items.length, '| first basDt:', first?.basDt, '| first clpr:', first?.clpr, '| last basDt:', items[items.length - 1]?.basDt);
+  // srtnCd 정확 일치 필터
+  let filtered = all.filter(v => v.srtnCd === code);
 
-  const series = items
+  // srtnCd 매칭 실패 시 종목명으로 재시도
+  if (filtered.length === 0) {
+    const expectedName = KRX_NAME_MAP[code];
+    if (expectedName) {
+      filtered = all.filter(v => v.itmsNm === expectedName);
+      console.log(`[KRX] srtnCd miss → itmsNm 필터: "${expectedName}" → ${filtered.length}개`);
+    }
+  }
+
+  console.log(`[KRX] filtered=${filtered.length}`);
+
+  // 의미있는 시계열 최소 기준: 30일치 미만이면 폴백
+  if (filtered.length < 30) {
+    throw new Error(`KRX 시계열 부족 (${filtered.length}개) — Twelve Data 폴백`);
+  }
+
+  const series = filtered
     .map(v => ({
       date:  fmtBasDt(v.basDt),
-      // 콤마 포함 형식("78,500") 대비 → 콤마 제거 후 파싱
       close: parseFloat(String(v.clpr).replace(/,/g, '')),
     }))
     .filter(p => !isNaN(p.close) && p.close > 0)
-    // API 정렬 순서 불확실 → basDt 기준 오름차순(과거→최신) 명시 정렬
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  const matched = filtered[0];
   return {
     source: 'live',
     symbol,
     meta: {
       currency:     'KRW',
-      exchangeName: items[0]?.mrktCtg ?? 'KRX',
-      longName:     items[0]?.itmsNm  ?? symbol,
+      exchangeName: matched?.mrktCtg ?? 'KRX',
+      longName:     matched?.itmsNm  ?? code,
     },
     series,
     fetchedAt: new Date().toISOString(),
