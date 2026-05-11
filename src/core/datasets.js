@@ -503,6 +503,13 @@ export async function buildLiveDataset(userHoldings) {
     userHoldings.map(async (h) => {
       const yahooSym = getYahooSymbol(h.symbol);
       const result = await fetchRealSeries(yahooSym);
+      if (result.success) {
+        console.log('[DEBUG]', h.symbol, 
+          'start:', result.series[0].date, result.series[0].close, 
+          '→ end:', result.series[result.series.length-1].date, result.series[result.series.length-1].close, 
+          'ratio:', result.series[result.series.length-1].close / result.series[0].close
+        );
+      }
       return { symbol: h.symbol, yahooSym, weight: h.weight, ...result };
     })
   );

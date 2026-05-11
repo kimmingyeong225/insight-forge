@@ -51,7 +51,7 @@ export default function Dashboard() {
       holdings,
       returnsBySymbol: rawDataset.returnsBySymbol,
       portfolioCloses: rawDataset.portfolioCloses.map(p => p.y),
-      periodDays: 252,
+      periodDays: rawDataset.portfolioCloses.length - 1,
     });
   }, [rawDataset, holdings]);
 
