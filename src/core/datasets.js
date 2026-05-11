@@ -399,9 +399,11 @@ export function buildUserDataset(rawHoldings, bundleId = 'insight-forge-default'
   const profiles = isCrypto ? COIN_PROFILES : STOCK_PROFILES;
   const seedSuffix = '-user-' + Date.now();
 
+  // 비중 정규화: 총합이 1.0이 되도록 조정
+  const totalWeight = rawHoldings.reduce((acc, h) => acc + (parseFloat(h.weight) || 0), 0);
   const holdings = rawHoldings.map(h => ({
     symbol: h.symbol,
-    weight: parseFloat(h.weight) || 0,
+    weight: totalWeight > 0 ? (parseFloat(h.weight) || 0) / totalWeight : 0,
   }));
 
   // 시계열 — 알 수 없는 종목은 평균적인 변동성 추정
@@ -499,8 +501,15 @@ export async function fetchRealSeries(symbol) {
  * @param {Array<{symbol: string, weight: number}>} userHoldings - 종목명 (symbolMap 키 or Yahoo 심볼)
  */
 export async function buildLiveDataset(userHoldings) {
+  // 비중 정규화: 총합이 1.0이 되도록 조정
+  const totalWeight = userHoldings.reduce((acc, h) => acc + (parseFloat(h.weight) || 0), 0);
+  const normalizedHoldings = userHoldings.map(h => ({
+    ...h,
+    weight: totalWeight > 0 ? (parseFloat(h.weight) || 0) / totalWeight : 0
+  }));
+
   const fetched = await Promise.all(
-    userHoldings.map(async (h) => {
+    normalizedHoldings.map(async (h) => {
       const yahooSym = getYahooSymbol(h.symbol);
       const result = await fetchRealSeries(yahooSym);
       if (result.success) {
@@ -543,8 +552,8 @@ export async function buildLiveDataset(userHoldings) {
 
   return {
     name: '실시간 포트폴리오',
-    description: `${userHoldings.length}종목 · 실시간 시세 기반`,
-    holdings: userHoldings,
+    description: `${normalizedHoldings.length}종목 · 실시간 시세 기반`,
+    holdings: normalizedHoldings,
     portfolioCloses,
     returnsBySymbol,
     symbolReturns,

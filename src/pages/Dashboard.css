@@ -917,6 +917,13 @@
 .if-live-total__value.is-valid { color: #10b981; }
 .if-live-total__value.is-invalid { color: #f87171; }
 
+.if-live-total__info {
+  color: #bfdbfe;
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
 .if-live-total__warn {
   color: #fca5a5;
   font-size: 11px;

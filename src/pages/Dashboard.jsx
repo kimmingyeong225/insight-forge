@@ -210,17 +210,17 @@ export default function Dashboard() {
             <div className="if-live-panel__footer">
               <div className="if-live-total">
                 <span className="if-live-total__label">비중 합계:</span>
-                <span className={`if-live-total__value ${(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) === '100.0' ? 'is-valid' : 'is-invalid'}`}>
+                <span className={`if-live-total__value ${(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) === '100.0' ? 'is-valid' : ''}`}>
                   {(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1)}%
                 </span>
-                {(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) !== '100.0' && (
-                  <span className="if-live-total__warn">합계가 100%여야 합니다.</span>
-                )}
+                <span className="if-live-total__info">
+                  ℹ️ 입력하신 비율에 따라 자동으로 비중이 조절됩니다.
+                </span>
               </div>
               <button
                 className="if-live-panel__run"
                 onClick={applyLiveData}
-                disabled={liveHoldings.length === 0 || isLiveLoading || (liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) !== '100.0'}
+                disabled={liveHoldings.length === 0 || isLiveLoading || (liveHoldings.reduce((acc, h) => acc + h.weight, 0)) <= 0}
               >
                 {isLiveLoading ? '⏳ 불러오는 중...' : '▶ 분석 시작'}
               </button>
