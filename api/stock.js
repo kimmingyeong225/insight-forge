@@ -41,15 +41,14 @@ async function fetchKrx(symbol) {
   const yearAgo = new Date(today);
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
-  // numOfRows를 크게 설정 — API가 전체 종목×날짜 행을 반환하므로
-  // 한 종목의 252일치 데이터를 확보하려면 충분한 row 필요
   const params = new URLSearchParams({
-    serviceKey: apiKey,
+    serviceKey:  apiKey,
     resultType:  'json',
-    srtnCd:      code,
+    numOfRows:   '300',
+    pageNo:      '1',
+    likeSrtnCd:  code,       // srtnCd(미지원) → likeSrtnCd(단축코드 포함 검색)
     beginBasDt:  toYMD(yearAgo),
     endBasDt:    toYMD(today),
-    numOfRows:   '2000',
   });
 
   const url = `https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo?${params}`;
@@ -64,47 +63,33 @@ async function fetchKrx(symbol) {
   }
 
   const rawItems = data.response?.body?.items?.item;
-  if (!rawItems) throw new Error('KRX: 데이터 없음');
-  const all = [].concat(rawItems);
+  const all = rawItems ? [].concat(rawItems) : [];
+
+  // likeSrtnCd는 포함 검색이므로 srtnCd 정확 일치로 후처리 필터
+  const filtered = all.filter(v => v.srtnCd === code);
 
   // 진단 로그 (Vercel Functions 탭에서 확인)
-  console.log(`[KRX] total=${all.length} code=${code} first_srtnCd=${all[0]?.srtnCd} first_basDt=${all[0]?.basDt} first_itmsNm=${all[0]?.itmsNm}`);
+  console.log(`[KRX] url_code=${code} total=${all.length} filtered=${filtered.length} range=${filtered[0]?.basDt}~${filtered[filtered.length - 1]?.basDt}`);
 
-  // srtnCd 정확 일치 필터
-  let filtered = all.filter(v => v.srtnCd === code);
-
-  // srtnCd 매칭 실패 시 종목명으로 재시도
-  if (filtered.length === 0) {
-    const expectedName = KRX_NAME_MAP[code];
-    if (expectedName) {
-      filtered = all.filter(v => v.itmsNm === expectedName);
-      console.log(`[KRX] srtnCd miss → itmsNm 필터: "${expectedName}" → ${filtered.length}개`);
-    }
-  }
-
-  console.log(`[KRX] filtered=${filtered.length}`);
-
-  // 의미있는 시계열 최소 기준: 30일치 미만이면 폴백
   if (filtered.length < 30) {
     throw new Error(`KRX 시계열 부족 (${filtered.length}개) — Twelve Data 폴백`);
   }
 
   const series = filtered
     .map(v => ({
-      date:  fmtBasDt(v.basDt),
+      date:  v.basDt.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'),
       close: parseFloat(String(v.clpr).replace(/,/g, '')),
     }))
     .filter(p => !isNaN(p.close) && p.close > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const matched = filtered[0];
   return {
     source: 'live',
     symbol,
     meta: {
       currency:     'KRW',
-      exchangeName: matched?.mrktCtg ?? 'KRX',
-      longName:     matched?.itmsNm  ?? code,
+      exchangeName: filtered[0]?.mrktCtg ?? 'KRX',
+      longName:     filtered[0]?.itmsNm  ?? code,
     },
     series,
     fetchedAt: new Date().toISOString(),
