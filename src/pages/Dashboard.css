@@ -211,19 +211,6 @@
   font-size: 10px;
 }
 
-.if-kpi__rule {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 9px;
-  color: var(--if-gold);
-  opacity: 0;
-  transition: opacity 0.2s;
-  font-family: var(--if-font-mono);
-}
-.if-kpi:hover .if-kpi__rule { opacity: 1; }
-.if-kpi--featured .if-kpi__rule { right: 24px; }
-
 .if-kpi__label {
   font-size: 11px;
   color: var(--if-text-muted);
@@ -262,13 +249,14 @@
 }
 
 .if-tooltip-icon-svg {
-  color: var(--if-text-subtle);
-  cursor: help;
-  opacity: 0.7;
-  transition: opacity 0.15s;
+  color: var(--if-info);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: all 0.2s ease;
 }
 .if-tooltip-icon-svg:hover {
   opacity: 1;
+  transform: scale(1.1);
 }
 
 .if-tooltip-bubble {
