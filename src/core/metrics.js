@@ -99,9 +99,11 @@ export function sharpeRatio(closes, rf = 0.035, periodsPerYear = 252) {
 
 /**
  * 4.1 분산투자 점수 (Diversification Score, 0~100)
- * 수식: 100 × (1 - mean_correlation)
+ * N < 2: 분산 불가 → 0점
+ * N >= 2: 100 × (1 - mean_correlation)
  */
-export function diversificationScore(meanCorrelation) {
+export function diversificationScore(meanCorrelation, n) {
+  if (n < 2 || meanCorrelation === null || Number.isNaN(meanCorrelation)) return 0;
   return clip(100 * (1 - meanCorrelation), 0, 100);
 }
 
@@ -221,7 +223,7 @@ export function computeAllMetrics(dataset) {
   const meanCorr = meanCorrelation(matrix);
 
   // 3. 자체 정의 지표
-  const divScore = diversificationScore(meanCorr);
+  const divScore = diversificationScore(meanCorr, holdings.length);
   const weights = holdings.map(h => h.weight);
   const concScore = concentrationScore(weights);
   const health = healthScore({ sharpe, mdd, diversification: divScore, vol });

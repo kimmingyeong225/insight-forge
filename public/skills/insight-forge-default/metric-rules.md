@@ -187,12 +187,19 @@ last_updated: 2026-04-29
 - **정의**: 평균 상관계수를 역산한 분산투자 점수
 - **수식**: 
   ```
-  diversification_score = max(0, min(100, 100 × (1 - mean_correlation)))
+  N = 포트폴리오 종목 수
+
+  if N < 2:
+      diversification_score = 0          # 분산 불가 (단일 종목)
+  else:
+      diversification_score = max(0, min(100, 100 × (1 - mean_correlation)))
   ```
-- **입력**: `mean_correlation` (3.3 항목)
+- **입력**: `mean_correlation` (3.3 항목), `N` (포트폴리오 종목 수).  
+  N ≥ 2일 때만 mean_correlation 사용; N < 2이면 분산 불가로 간주하여 0점 반환.
 - **출력**: 단일 값 (0~100)
 - **단위**: 점
 - **해석 기준**:
+  - N = 1 (단일 종목): 0점 (분산투자 불가)
   - 80점 이상: 매우 우수한 분산
   - 60~79점: 양호
   - 40~59점: 보통
