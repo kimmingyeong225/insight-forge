@@ -101,6 +101,26 @@ export default function Dashboard() {
   const datasetList = useMemo(() => getDatasetList(bundleId), [bundleId]);
   const scenarios = useMemo(() => getScenarios(bundleId), [bundleId]);
 
+  const volatilityTooltip = useMemo(() => {
+    const closes = rawDataset.portfolioCloses;
+    if (!closes || closes.length === 0) return null;
+    const start = closes[0].y;
+    const end = closes[closes.length - 1].y;
+    const fmtStart = Math.round(start).toLocaleString();
+    const fmtEnd = Math.round(end).toLocaleString();
+
+    return (
+      <>
+        <div style={{ whiteSpace: 'nowrap' }}>
+          최근 1년 가격 변동: ₩{fmtStart} → ₩{fmtEnd}
+        </div>
+        <div style={{ marginTop: '4px', opacity: 0.8, fontSize: '10px' }}>
+          * 급격한 주가 변동(상승/하락)은 변동성 수치를 높게 만듭니다.
+        </div>
+      </>
+    );
+  }, [rawDataset]);
+
   // 시나리오별 섹션 표시 여부 (report-rules.md)
   const showTrend = !scenario.executiveBrief && !scenario.hideSections?.includes('trend_hidden');
   const showComposition = !scenario.executiveBrief && !scenario.hideSections?.includes('composition_hidden');
@@ -319,6 +339,7 @@ export default function Dashboard() {
                 format={def.format}
                 metricId={def.id}
                 isCustom={def.isCustom}
+                tooltip={def.id === 'volatility' ? volatilityTooltip : null}
               />
             ))}
           </div>
