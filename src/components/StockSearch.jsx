@@ -55,34 +55,55 @@ export default function StockSearch({ onAdd }) {
   };
 
   return (
-    <div className="if-search" ref={wrapRef}>
-      <input
-        type="text"
-        className="if-search__input"
-        placeholder="종목 검색 (삼성전자, AAPL, BTC...)"
-        value={query}
-        onChange={handleChange}
-        onFocus={() => setFocused(true)}
-        onKeyDown={handleKeyDown}
-        aria-label="종목 검색"
-        aria-autocomplete="list"
-        aria-expanded={suggestions.length > 0}
-      />
-      {focused && suggestions.length > 0 && (
-        <ul className="if-search__suggestions" role="listbox">
-          {suggestions.map(name => (
-            <li
-              key={name}
-              role="option"
-              className="if-search__item"
-              onMouseDown={() => handleSelect(name)}
-            >
-              <span className="if-search__name">{name}</span>
-              <span className="if-search__sym">{SYMBOL_MAP[name]}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="if-search-wrap">
+      <div className="if-search" ref={wrapRef}>
+        <div className="if-search__inner">
+          <svg className="if-search__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input
+            type="text"
+            className="if-search__input"
+            placeholder="어떤 종목을 분석해 볼까요? (삼성전자, AAPL, BTC...)"
+            value={query}
+            onChange={handleChange}
+            onFocus={() => setFocused(true)}
+            onKeyDown={handleKeyDown}
+            aria-label="종목 검색"
+            aria-autocomplete="list"
+            aria-expanded={suggestions.length > 0}
+          />
+        </div>
+        {focused && suggestions.length > 0 && (
+          <ul className="if-search__suggestions" role="listbox">
+            {suggestions.map(name => (
+              <li
+                key={name}
+                role="option"
+                className="if-search__item"
+                onMouseDown={() => handleSelect(name)}
+              >
+                <span className="if-search__name">{name}</span>
+                <span className="if-search__sym">{SYMBOL_MAP[name]}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="if-search-tags">
+        <span className="if-search-tags__label">자주 찾는 종목:</span>
+        {['삼성전자', '비트코인', 'Apple', 'NVIDIA', 'Tesla'].map(tag => (
+          <button
+            key={tag}
+            type="button"
+            className="if-search-tag"
+            onClick={() => handleSelect(tag)}
+          >
+            #{tag}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

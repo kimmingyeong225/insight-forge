@@ -185,45 +185,66 @@ export default function Dashboard() {
       {/* 실시간 모드 패널 */}
       {isLiveMode && (
         <div className="if-live-panel">
-          {/* Info Banner */}
-          <div className="if-live-info">
-            <span className="if-live-info__icon">ℹ️</span>
-            <span>Insight Forge는 매수 단가(P&L)가 아닌, <strong>종목별 비중(%)</strong>을 기준으로 포트폴리오의 건강도와 위험성을 진단합니다.</span>
+          {/* Search Area */}
+          <div className="if-live-panel__search-section">
+            <StockSearch onAdd={addLiveHolding} />
           </div>
 
           <div className="if-live-panel__main">
-            <div className="if-live-panel__left">
-              <span className="if-live-panel__label">종목 추가</span>
-              <StockSearch onAdd={addLiveHolding} />
-            </div>
-
-            {liveHoldings.length > 0 && (
+            {liveHoldings.length === 0 ? (
+              <div className="if-live-empty">
+                <div className="if-live-empty__icon">🔍</div>
+                <div className="if-live-empty__text">분석할 종목을 추가해 보세요</div>
+                <div className="if-live-empty__sub">상단 검색창에서 종목명을 입력하거나 아래 추천 태그를 클릭하세요</div>
+              </div>
+            ) : (
               <div className="if-live-list">
                 {liveHoldings.map(h => (
-                  <div key={h.symbol} className="if-live-row">
-                    <span className="if-live-row__sym">{h.symbol}</span>
-                    <div className="if-live-row__input-wrap">
-                      <input
-                        type="number"
-                        className="if-live-row__input"
-                        value={h.weight === 0 ? '' : (h.weight * 100).toFixed(0)}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          const { updateLiveHoldingWeight } = useStore.getState();
-                          updateLiveHoldingWeight(h.symbol, val / 100);
-                        }}
-                        placeholder="0"
-                        min="0"
-                        max="100"
-                      />
-                      <span className="if-live-row__unit">%</span>
+                  <div key={h.symbol} className="if-live-card">
+                    <div className="if-live-card__info">
+                      <span className="if-live-card__sym">{h.symbol}</span>
+                      <span className="if-live-card__price">{h.price || '시세 확인 중...'}</span>
                     </div>
-                    <button
-                      className="if-live-row__remove"
-                      onClick={() => removeLiveHolding(h.symbol)}
-                    >×</button>
+                    
+                    <div className="if-live-card__control">
+                      <div className="if-live-card__input-label">목표 비중</div>
+                      <div className="if-live-card__input-wrap">
+                        <input
+                          type="number"
+                          className="if-live-card__input"
+                          value={h.weight === 0 ? '' : (h.weight * 100).toFixed(0)}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            const { updateLiveHoldingWeight } = useStore.getState();
+                            updateLiveHoldingWeight(h.symbol, val / 100);
+                          }}
+                          placeholder="0"
+                          min="0"
+                          max="100"
+                        />
+                        <span className="if-live-card__unit">%</span>
+                      </div>
+                      <button
+                        className="if-live-card__remove"
+                        onClick={() => removeLiveHolding(h.symbol)}
+                        title="삭제"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* 비중 합계 안내 (비중이 0일 때만 크게 표시) */}
+            {liveHoldings.length > 0 && liveHoldings.reduce((acc, h) => acc + h.weight, 0) === 0 && (
+              <div className="if-live-guide">
+                <div className="if-live-guide__icon">💡</div>
+                <div className="if-live-guide__text">추가된 종목의 비중을 설정해 보세요</div>
+                <div className="if-live-guide__sub">입력하신 비율에 따라 자동으로 포트폴리오가 구성됩니다</div>
               </div>
             )}
 
@@ -234,7 +255,7 @@ export default function Dashboard() {
                   {(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1)}%
                 </span>
                 <span className="if-live-total__info">
-                  ℹ️ 입력하신 비율에 따라 자동으로 비중이 조절됩니다.
+                  ℹ️ 100%가 아니어도 비율에 맞춰 자동 조정됩니다.
                 </span>
               </div>
               <button
@@ -242,7 +263,7 @@ export default function Dashboard() {
                 onClick={applyLiveData}
                 disabled={liveHoldings.length === 0 || isLiveLoading || (liveHoldings.reduce((acc, h) => acc + h.weight, 0)) <= 0}
               >
-                {isLiveLoading ? '⏳ 불러오는 중...' : '▶ 분석 시작'}
+                {isLiveLoading ? '⏳ 데이터 수집 및 분석 중...' : '🔥 포트폴리오 분석 시작'}
               </button>
             </div>
           </div>

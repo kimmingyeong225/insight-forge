@@ -57,10 +57,41 @@ export const useStore = create((set, get) => ({
   },
 
   // 실시간 종목 추가
-  addLiveHolding: (symbol) => {
+  addLiveHolding: async (symbol) => {
     const { liveHoldings } = get();
     if (liveHoldings.find(h => h.symbol === symbol)) return;
-    set({ liveHoldings: [...liveHoldings, { symbol, weight: 0 }] });
+    
+    // 임시 추가 (로딩 상태 표시용)
+    const newHolding = { symbol, weight: 0, price: '불러오는 중...' };
+    set({ liveHoldings: [...liveHoldings, newHolding] });
+
+    try {
+      const { fetchRealSeries } = await import('../core/datasets.js');
+      const { getYahooSymbol } = await import('../core/symbolMap.js');
+      const res = await fetchRealSeries(getYahooSymbol(symbol));
+      if (res.success && res.series?.length > 0) {
+        const lastPrice = res.series[res.series.length - 1].close;
+        const formattedPrice = new Intl.NumberFormat('ko-KR', { style: 'currency', currency: symbol.includes('/') ? 'USD' : 'KRW' }).format(lastPrice);
+        
+        set(state => ({
+          liveHoldings: state.liveHoldings.map(h => 
+            h.symbol === symbol ? { ...h, price: formattedPrice } : h
+          )
+        }));
+      } else {
+        set(state => ({
+          liveHoldings: state.liveHoldings.map(h => 
+            h.symbol === symbol ? { ...h, price: '가격 정보 없음' } : h
+          )
+        }));
+      }
+    } catch {
+      set(state => ({
+        liveHoldings: state.liveHoldings.map(h => 
+          h.symbol === symbol ? { ...h, price: '연결 실패' } : h
+        )
+      }));
+    }
   },
 
   updateLiveHoldingWeight: (symbol, weight) => {
