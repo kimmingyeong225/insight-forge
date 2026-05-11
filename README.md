@@ -31,6 +31,19 @@ npm run build
 npm run preview
 ```
 
+### 환경변수 설정 (실시간 데이터 사용 시)
+
+`.env.local` 파일을 프로젝트 루트에 생성하세요.
+두 키 모두 없어도 GBM 시뮬레이션 데이터로 동작합니다.
+
+```env
+# 한국 주식 (공공데이터포털 KRX API 발급)
+DATA_GO_KR_API_KEY=your_key
+
+# 미국 주식 · 암호화폐 (Twelve Data 발급)
+TWELVEDATA_API_KEY=your_key
+```
+
 ### Vercel 배포
 
 ```bash
@@ -47,6 +60,8 @@ vercel --prod
 
 ```
 insight-forge/
+├── api/
+│   └── stock.js                         # Vercel Serverless 프록시 (CORS 우회)
 ├── public/
 │   └── skills/                          # 사용자가 갈아끼울 수 있는 Skills 번들
 │       ├── insight-forge-default/        # 주력 번들 (주식·금융기업)
@@ -58,8 +73,11 @@ insight-forge/
 │       │   └── report-rules.md
 │       └── insight-forge-crypto/         # 확장 번들 (암호화폐)
 │           └── ... (동일 구조)
+├── scripts/
+│   └── build-cache.mjs                  # 정적 캐시 사전 빌드 스크립트
 ├── src/
 │   ├── components/                       # React 위젯 6종
+│   │   ├── StockSearch.jsx              # 종목 검색 자동완성 (실시간 모드)
 │   │   ├── KpiCard.jsx                  # 단일 지표 카드
 │   │   ├── LineChart.jsx                # 시계열 라인
 │   │   ├── DonutChart.jsx               # 자산 비중 도넛
@@ -114,6 +132,18 @@ insight-forge/
 ### 5. 시나리오 기반 리포트
 `report-rules.md`의 5개 시나리오(개인·리스크·성과·컴플라이언스·임원)를 토글하면 동일 데이터에 대해 다른 강조점의 대시보드가 즉시 구성됩니다.
 
+### 6. 실시간 데이터 연동 ⭐ (B-2)
+헤더의 **실시간 모드** 토글을 켜면 GBM 시뮬레이션 대신 실제 시장 데이터로 대시보드를 구성합니다.
+
+| 자산 유형 | 데이터 소스 | 폴백 |
+|----------|------------|------|
+| 한국 주식 (6자리 코드) | 공공데이터포털 KRX API | Twelve Data → JSON 캐시 → 시뮬레이션 |
+| 미국 주식 · 암호화폐 | Twelve Data API | JSON 캐시 → 시뮬레이션 |
+
+- 종목 검색창에서 한글 이름 또는 코드로 검색 가능 (삼성전자, AAPL, BTC/USD 등)
+- 각 KPI 카드 아래 `live` / `cache` / `simulation` 뱃지로 데이터 출처 표시
+- `npm run build-cache` 로 정적 JSON 캐시를 사전 빌드 가능
+
 ## 🛠 기술 스택
 
 | 계층 | 선택 |
@@ -122,6 +152,8 @@ insight-forge/
 | 스타일 | CSS Variables (Pretendard 폰트) |
 | 차트 | Recharts |
 | 상태 관리 | Zustand |
+| 데이터 소스 | 공공데이터포털 KRX API · Twelve Data API |
+| API 프록시 | Vercel Serverless Functions (`api/stock.js`) |
 | 배포 | Vercel |
 
 ## 🧪 Skills.md 작성 가이드
