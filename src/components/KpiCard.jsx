@@ -15,7 +15,11 @@ export default function KpiCard({ label, value, format, metricId, isCustom = fal
       )}
       <div className="if-kpi__rule">metric.{metricId}</div>
       <div className="if-kpi__label">{label}</div>
-      <div className="if-kpi__value">{formattedValue}</div>
+      <div className="if-kpi__value">
+        {typeof value === 'number' || typeof value === 'string' 
+          ? String(formattedValue) 
+          : '—'}
+      </div>
       {grade.label && (
         <span
           className="if-kpi__grade"
