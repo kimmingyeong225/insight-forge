@@ -60,33 +60,20 @@ export const useStore = create((set, get) => ({
   addLiveHolding: (symbol) => {
     const { liveHoldings } = get();
     if (liveHoldings.find(h => h.symbol === symbol)) return;
-    const updated = [...liveHoldings, { symbol, weight: 0 }];
-    // 비중 균등 배분
-    const equalWeight = parseFloat((1 / updated.length).toFixed(4));
-    const reweighted = updated.map((h, i) => ({
-      ...h,
-      weight: i === updated.length - 1
-        ? parseFloat((1 - equalWeight * (updated.length - 1)).toFixed(4))
-        : equalWeight,
-    }));
-    set({ liveHoldings: reweighted });
+    set({ liveHoldings: [...liveHoldings, { symbol, weight: 0 }] });
+  },
+
+  updateLiveHoldingWeight: (symbol, weight) => {
+    const { liveHoldings } = get();
+    const updated = liveHoldings.map(h => 
+      h.symbol === symbol ? { ...h, weight: parseFloat(weight) || 0 } : h
+    );
+    set({ liveHoldings: updated });
   },
 
   removeLiveHolding: (symbol) => {
     const { liveHoldings } = get();
-    const updated = liveHoldings.filter(h => h.symbol !== symbol);
-    if (updated.length === 0) {
-      set({ liveHoldings: [] });
-      return;
-    }
-    const equalWeight = parseFloat((1 / updated.length).toFixed(4));
-    const reweighted = updated.map((h, i) => ({
-      ...h,
-      weight: i === updated.length - 1
-        ? parseFloat((1 - equalWeight * (updated.length - 1)).toFixed(4))
-        : equalWeight,
-    }));
-    set({ liveHoldings: reweighted });
+    set({ liveHoldings: liveHoldings.filter(h => h.symbol !== symbol) });
   },
 
   // Yahoo Finance 호출 → live 데이터셋 생성

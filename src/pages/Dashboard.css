@@ -747,7 +747,7 @@
 }
 
 /* =========================================================
-   B-2: 실시간 데이터 모드 UI
+   B-2: 실시간 데이터 모드 UI (비중 기반 입력 업데이트)
    ========================================================= */
 
 /* 모드 토글 버튼 */
@@ -772,16 +772,47 @@
   color: #fff;
 }
 
-/* 실시간 패널 (헤더 아래 띠) */
+/* 실시간 패널 */
 .if-live-panel {
   background: #0a1428;
   border-bottom: 1px solid rgba(186,117,23,0.3);
-  padding: 10px 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Info Banner */
+.if-live-info {
+  background: #1e3a8a; /* Tailwind blue-900 */
+  color: #bfdbfe;     /* Tailwind blue-200 */
+  padding: 8px 24px;
+  font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
+.if-live-info__icon {
+  font-size: 14px;
+}
+.if-live-info strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.if-live-panel__main {
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.if-live-panel__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .if-live-panel__label {
   color: var(--if-gold);
   font-size: 11px;
@@ -790,61 +821,126 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
-.if-live-panel__chips {
+
+/* 종목 리스트 (비중 입력 행) */
+.if-live-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.if-live-row {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 12px;
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.if-live-row__sym {
+  color: var(--if-cream);
+  font-weight: 600;
+  font-size: 13px;
   flex: 1;
 }
+
+.if-live-row__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.if-live-row__input {
+  width: 45px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(186, 117, 23, 0.3);
+  border-radius: 4px;
+  color: var(--if-gold);
+  padding: 4px 6px;
+  font-size: 13px;
+  font-family: var(--if-font-mono);
+  text-align: right;
+  outline: none;
+}
+.if-live-row__input:focus {
+  border-color: var(--if-gold);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.if-live-row__unit {
+  color: rgba(245, 241, 232, 0.5);
+  font-size: 11px;
+}
+
+.if-live-row__remove {
+  background: none;
+  border: none;
+  color: rgba(245, 241, 232, 0.3);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s;
+}
+.if-live-row__remove:hover {
+  color: #ef4444;
+}
+
+/* 푸터 (합계 및 실행) */
+.if-live-panel__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.if-live-total {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.if-live-total__label {
+  color: rgba(245, 241, 232, 0.5);
+  font-size: 12px;
+}
+
+.if-live-total__value {
+  font-size: 18px;
+  font-family: var(--if-font-mono);
+  font-weight: 700;
+}
+.if-live-total__value.is-valid { color: #10b981; }
+.if-live-total__value.is-invalid { color: #f87171; }
+
+.if-live-total__warn {
+  color: #fca5a5;
+  font-size: 11px;
+  font-style: italic;
+}
+
 .if-live-panel__run {
-  padding: 6px 18px;
+  padding: 8px 24px;
   background: var(--if-gold);
   color: var(--if-navy);
   border: none;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  font-family: var(--if-font-sans);
   cursor: pointer;
-  white-space: nowrap;
   transition: opacity 0.15s;
 }
 .if-live-panel__run:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
+  filter: grayscale(0.5);
 }
 .if-live-panel__run:not(:disabled):hover {
-  opacity: 0.85;
-}
-
-/* 종목 칩 */
-.if-live-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(186,117,23,0.15);
-  border: 1px solid rgba(186,117,23,0.35);
-  color: var(--if-cream);
-  border-radius: 20px;
-  padding: 3px 10px 3px 10px;
-  font-size: 12px;
-}
-.if-live-chip__weight {
-  color: var(--if-gold);
-  font-size: 11px;
-  margin-left: 2px;
-}
-.if-live-chip__remove {
-  background: none;
-  border: none;
-  color: rgba(245,241,232,0.5);
-  cursor: pointer;
-  padding: 0 0 0 4px;
-  font-size: 13px;
-  line-height: 1;
-}
-.if-live-chip__remove:hover {
-  color: #ef4444;
+  opacity: 0.9;
 }
 
 /* 에러 메시지 */

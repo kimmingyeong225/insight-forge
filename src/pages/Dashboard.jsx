@@ -165,32 +165,68 @@ export default function Dashboard() {
       {/* 실시간 모드 패널 */}
       {isLiveMode && (
         <div className="if-live-panel">
-          <div className="if-live-panel__left">
-            <span className="if-live-panel__label">종목 추가</span>
-            <StockSearch onAdd={addLiveHolding} />
+          {/* Info Banner */}
+          <div className="if-live-info">
+            <span className="if-live-info__icon">ℹ️</span>
+            <span>Insight Forge는 매수 단가(P&L)가 아닌, <strong>종목별 비중(%)</strong>을 기준으로 포트폴리오의 건강도와 위험성을 진단합니다.</span>
           </div>
-          {liveHoldings.length > 0 && (
-            <div className="if-live-panel__chips">
-              {liveHoldings.map(h => (
-                <span key={h.symbol} className="if-live-chip">
-                  {h.symbol}
-                  <span className="if-live-chip__weight">{(h.weight * 100).toFixed(0)}%</span>
-                  <button
-                    className="if-live-chip__remove"
-                    onClick={() => removeLiveHolding(h.symbol)}
-                    aria-label={`${h.symbol} 제거`}
-                  >×</button>
-                </span>
-              ))}
+
+          <div className="if-live-panel__main">
+            <div className="if-live-panel__left">
+              <span className="if-live-panel__label">종목 추가</span>
+              <StockSearch onAdd={addLiveHolding} />
             </div>
-          )}
-          <button
-            className="if-live-panel__run"
-            onClick={applyLiveData}
-            disabled={liveHoldings.length === 0 || isLiveLoading}
-          >
-            {isLiveLoading ? '⏳ 불러오는 중...' : '▶ 분석 시작'}
-          </button>
+
+            {liveHoldings.length > 0 && (
+              <div className="if-live-list">
+                {liveHoldings.map(h => (
+                  <div key={h.symbol} className="if-live-row">
+                    <span className="if-live-row__sym">{h.symbol}</span>
+                    <div className="if-live-row__input-wrap">
+                      <input
+                        type="number"
+                        className="if-live-row__input"
+                        value={h.weight === 0 ? '' : (h.weight * 100).toFixed(0)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const { updateLiveHoldingWeight } = useStore.getState();
+                          updateLiveHoldingWeight(h.symbol, val / 100);
+                        }}
+                        placeholder="0"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="if-live-row__unit">%</span>
+                    </div>
+                    <button
+                      className="if-live-row__remove"
+                      onClick={() => removeLiveHolding(h.symbol)}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="if-live-panel__footer">
+              <div className="if-live-total">
+                <span className="if-live-total__label">비중 합계:</span>
+                <span className={`if-live-total__value ${(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) === '100.0' ? 'is-valid' : 'is-invalid'}`}>
+                  {(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1)}%
+                </span>
+                {(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) !== '100.0' && (
+                  <span className="if-live-total__warn">합계가 100%여야 합니다.</span>
+                )}
+              </div>
+              <button
+                className="if-live-panel__run"
+                onClick={applyLiveData}
+                disabled={liveHoldings.length === 0 || isLiveLoading || (liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) !== '100.0'}
+              >
+                {isLiveLoading ? '⏳ 불러오는 중...' : '▶ 분석 시작'}
+              </button>
+            </div>
+          </div>
+
           {liveError && (
             <div className="if-live-error">
               ⚠ {liveError}
