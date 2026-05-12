@@ -17,6 +17,9 @@ yarn-error.log*
 *.swp
 *.swo
 
+# Phase 보고서·산출물 (로컬 핸드오프용, commit 제외)
+.tmp_*
+
 # Vercel
 .vercel
 
