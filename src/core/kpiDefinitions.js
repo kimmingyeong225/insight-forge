@@ -3,12 +3,14 @@
  * viz-rules.md의 차트 매핑에 직접 연결됨
  */
 
+// Phase 4 hotfix: 503/undefined 응답 시 toFixed throw로 React unmount 되는 회귀 차단.
+// 5개 함수 모두 입구에서 nullish/NaN 가드. 폴백은 프로젝트 컨벤션 '—' (U+2014).
 const fmt = {
-  pct: (v) => (v * 100).toFixed(1) + '%',
-  num: (v) => v.toFixed(2),
-  int: (v) => Math.round(v).toString(),
-  pt:  (v) => (v >= 0 ? '+' : '') + v.toFixed(1) + 'pt',
-  pctSimple: (v) => v.toFixed(1) + '%',
+  pct: (v) => (v == null || Number.isNaN(v)) ? '—' : (v * 100).toFixed(1) + '%',
+  num: (v) => (v == null || Number.isNaN(v)) ? '—' : v.toFixed(2),
+  int: (v) => (v == null || Number.isNaN(v)) ? '—' : Math.round(v).toString(),
+  pt:  (v) => (v == null || Number.isNaN(v)) ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + 'pt',
+  pctSimple: (v) => (v == null || Number.isNaN(v)) ? '—' : v.toFixed(1) + '%',
 };
 
 export const KPI_DEFINITIONS = {
