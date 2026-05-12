@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store/useStore.js';
 import { computeAllMetrics } from '../core/metrics.js';
 import { evaluateInsights } from '../core/insights.js';
@@ -18,6 +18,7 @@ import SkillsInspector from '../components/SkillsInspector.jsx';
 import Gauge from '../components/Gauge.jsx';
 import DataUploader from '../components/DataUploader.jsx';
 import StockSearch from '../components/StockSearch.jsx';
+import OnboardingModal from '../components/OnboardingModal.jsx';
 
 import './Dashboard.css';
 
@@ -29,7 +30,24 @@ export default function Dashboard() {
     openUploader, closeUploader, applyUserData, clearUserData,
     isLiveMode, isLiveLoading, liveError, liveHoldings,
     toggleLiveMode, addLiveHolding, removeLiveHolding, applyLiveData,
+    isInspectorOpen, toggleInspector,
+    isScenarioHintDismissed, dismissScenarioHint,
+    isOnboardingOpen, closeOnboarding,
+    isLiveInputCollapsed, expandLiveInput, quickStartPortfolio,
   } = useStore();
+
+  const liveTotalWeight = useMemo(
+    () => liveHoldings.reduce((acc, h) => acc + h.weight, 0),
+    [liveHoldings]
+  );
+  const isLiveTotal100 = Math.round(liveTotalWeight * 1000) === 1000;
+
+  const insightsRef = useRef(null);
+  const [showBasicKpis, setShowBasicKpis] = useState(true);
+
+  const scrollToInsights = () => {
+    insightsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   useEffect(() => { init(); }, []);
 
@@ -81,11 +99,24 @@ export default function Dashboard() {
   const heroValue = metrics[heroMetric] ?? 50;
   const heroGrade = gradeColor(heroValue);
   const heroLabel = isCrypto ? '변동성 조정 위험 점수' : '포트폴리오 건강도';
-  const heroMessage =
-    heroValue >= 80 ? '균형 잡힌 포트폴리오입니다' :
-    heroValue >= 60 ? '양호하지만 일부 점검이 필요합니다' :
-    heroValue >= 40 ? '주의가 필요한 영역이 있습니다' :
-                      '즉시 조치가 필요한 항목이 있습니다';
+
+  // 5구간 점수 라벨 + 색상 매핑 (vizRouter.gradeColor와 의미적으로 정렬)
+  const heroBand = useMemo(() => {
+    if (heroValue >= 80) return { label: '매우 우수', color: '#10B981', dot: '🟢' };
+    if (heroValue >= 60) return { label: '양호',     color: '#34D399', dot: '🟢' };
+    if (heroValue >= 40) return { label: '주의 필요', color: '#F59E0B', dot: '🟡' };
+    if (heroValue >= 20) return { label: '위험',     color: '#F97316', dot: '🟠' };
+    return                       { label: '심각',     color: '#EF4444', dot: '🔴' };
+  }, [heroValue]);
+
+  // 액션 지향 메시지: 인사이트 심각도/개수 기반
+  const heroMessage = useMemo(() => {
+    const critical = insights.filter(i => i.severity === 'critical').length;
+    const warning  = insights.filter(i => i.severity === 'warning').length;
+    if (critical > 0) return `즉시 점검이 필요한 항목 ${critical}건`;
+    if (warning > 0)  return `개선 여지가 있는 영역 ${warning}건`;
+    return '안정적인 포트폴리오 상태';
+  }, [insights]);
 
   const lineData = useMemo(() => {
     const closes = rawDataset.portfolioCloses;
@@ -140,133 +171,209 @@ export default function Dashboard() {
           <div className="if-brand-tag">규칙으로 인사이트를 주조하다</div>
         </div>
         <div className="if-header__controls">
-          <select
-            className="if-select"
-            value={bundleId}
-            onChange={(e) => setBundle(e.target.value)}
-            aria-label="Skills 번들 선택"
-          >
-            <option value="insight-forge-default">📊 insight-forge-default · 주식·금융기업</option>
-            <option value="insight-forge-crypto">₿ insight-forge-crypto · 암호화폐</option>
-          </select>
-
-          {/* 데이터 모드 토글 */}
-          <button
-            className={`if-mode-btn ${isLiveMode ? 'is-live' : ''}`}
-            onClick={toggleLiveMode}
-            title={isLiveMode ? '더미 데이터 모드로 전환' : '실시간 데이터 모드로 전환'}
-          >
-            {isLiveMode ? '🔴 실시간' : '⬜ 더미 데이터'}
-          </button>
-
-          {!isLiveMode && (
+          <ControlField label="분석 도메인" tip="투자 도메인을 선택하면 분석 규칙이 전환됩니다">
             <select
               className="if-select"
-              value={userDataset ? '__user__' : datasetId}
-              onChange={(e) => {
-                if (e.target.value === '__upload__') {
-                  openUploader();
-                } else if (e.target.value !== '__user__') {
-                  setDataset(e.target.value);
-                }
-              }}
-              aria-label="데이터셋 선택"
+              value={bundleId}
+              onChange={(e) => setBundle(e.target.value)}
+              aria-label="Skills 번들 선택"
             >
-              {datasetList.map(d => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-              {userDataset && <option value="__user__">📤 {userDataset.name}</option>}
-              <option value="__upload__">⬆ 데이터 업로드...</option>
+              <option value="insight-forge-default">📊 주식·금융기업</option>
+              <option value="insight-forge-crypto">₿ 암호화폐</option>
             </select>
+          </ControlField>
+
+          <ControlField
+            label="데이터 출처"
+            tip={isLiveMode ? '더미 데이터로 돌아갑니다' : '실시간 시장 데이터로 분석을 전환합니다'}
+          >
+            <button
+              className={`if-mode-btn ${isLiveMode ? 'is-live' : ''}`}
+              onClick={toggleLiveMode}
+              aria-pressed={isLiveMode}
+            >
+              {isLiveMode ? (
+                <>
+                  <span className="if-live-dot" aria-hidden="true" />
+                  <span>LIVE</span>
+                </>
+              ) : (
+                <>⬜ 더미 데이터</>
+              )}
+            </button>
+          </ControlField>
+
+          {!isLiveMode && (
+            <ControlField label="포트폴리오" tip="분석할 데이터셋을 선택합니다">
+              <select
+                className="if-select"
+                value={userDataset ? '__user__' : datasetId}
+                onChange={(e) => {
+                  if (e.target.value === '__upload__') {
+                    openUploader();
+                  } else if (e.target.value !== '__user__') {
+                    setDataset(e.target.value);
+                  }
+                }}
+                aria-label="데이터셋 선택"
+              >
+                {datasetList.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+                {userDataset && <option value="__user__">📤 {userDataset.name}</option>}
+                <option value="__upload__">⬆ 데이터 업로드...</option>
+              </select>
+            </ControlField>
           )}
+
+          <ControlField label="규칙 보기" tip="이 화면을 생성한 .md 규칙 보기">
+            <button
+              className={`if-inspector-toggle ${isInspectorOpen ? 'is-open' : ''}`}
+              onClick={toggleInspector}
+              aria-pressed={isInspectorOpen}
+              aria-label="Skills.md Inspector 토글"
+            >
+              <span className="if-inspector-toggle__icon">📋</span>
+              <span className="if-inspector-toggle__label">Skills.md</span>
+            </button>
+          </ControlField>
         </div>
       </header>
 
       {/* 실시간 모드 패널 */}
       {isLiveMode && (
         <div className="if-live-panel">
-          {/* Search Area */}
-          <div className="if-live-panel__search-section">
-            <StockSearch onAdd={addLiveHolding} />
-          </div>
-
-          <div className="if-live-panel__main">
-            {liveHoldings.length === 0 ? (
-              <div className="if-live-empty">
-                <div className="if-live-empty__icon">🔍</div>
-                <div className="if-live-empty__text">분석할 종목을 추가해 보세요</div>
-                <div className="if-live-empty__sub">상단 검색창에서 종목명을 입력하거나 아래 추천 태그를 클릭하세요</div>
-              </div>
-            ) : (
-              <div className="if-live-list">
-                {liveHoldings.map(h => (
-                  <div key={h.symbol} className="if-live-card">
-                    <div className="if-live-card__info">
-                      <span className="if-live-card__sym">{h.symbol}</span>
-                      <span className="if-live-card__price">{h.price || '시세 확인 중...'}</span>
-                    </div>
-                    
-                    <div className="if-live-card__control">
-                      <div className="if-live-card__input-label">목표 비중</div>
-                      <div className="if-live-card__input-wrap">
-                        <input
-                          type="number"
-                          className="if-live-card__input"
-                          value={h.weight === 0 ? '' : (h.weight * 100).toFixed(0)}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            const { updateLiveHoldingWeight } = useStore.getState();
-                            updateLiveHoldingWeight(h.symbol, val / 100);
-                          }}
-                          placeholder="0"
-                          min="0"
-                          max="100"
-                        />
-                        <span className="if-live-card__unit">%</span>
-                      </div>
-                      <button
-                        className="if-live-card__remove"
-                        onClick={() => removeLiveHolding(h.symbol)}
-                        title="삭제"
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 비중 합계 안내 (비중이 0일 때만 크게 표시) */}
-            {liveHoldings.length > 0 && liveHoldings.reduce((acc, h) => acc + h.weight, 0) === 0 && (
-              <div className="if-live-guide">
-                <div className="if-live-guide__icon">💡</div>
-                <div className="if-live-guide__text">추가된 종목의 비중을 설정해 보세요</div>
-                <div className="if-live-guide__sub">입력하신 비율에 따라 자동으로 포트폴리오가 구성됩니다</div>
-              </div>
-            )}
-
-            <div className="if-live-panel__footer">
-              <div className="if-live-total">
-                <span className="if-live-total__label">비중 합계:</span>
-                <span className={`if-live-total__value ${(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1) === '100.0' ? 'is-valid' : ''}`}>
-                  {(liveHoldings.reduce((acc, h) => acc + h.weight, 0) * 100).toFixed(1)}%
-                </span>
-                <span className="if-live-total__info">
-                  ℹ️ 100%가 아니어도 비율에 맞춰 자동 조정됩니다.
+          {isLiveInputCollapsed ? (
+            // 접힌 상태 — 결과 영역 강조 + "종목 변경" 칩
+            <div className="if-live-collapsed">
+              <div className="if-live-collapsed__info">
+                <span className="if-live-collapsed__icon">📊</span>
+                <span>
+                  실시간 분석 중 · {liveHoldings.length}종목
+                  ({liveHoldings.map(h => h.symbol).join(', ')})
                 </span>
               </div>
               <button
-                className="if-live-panel__run"
-                onClick={applyLiveData}
-                disabled={liveHoldings.length === 0 || isLiveLoading || (liveHoldings.reduce((acc, h) => acc + h.weight, 0)) <= 0}
+                type="button"
+                className="if-live-collapsed__edit"
+                onClick={expandLiveInput}
+                title="종목 구성 다시 편집"
               >
-                {isLiveLoading ? '⏳ 데이터 수집 및 분석 중...' : '🔥 포트폴리오 분석 시작'}
+                🔍 종목 변경하기
               </button>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* 진입 가이드 1단락 (a) */}
+              <div className="if-live-intro">
+                <div className="if-live-intro__title">📊 분석할 종목을 추가하세요</div>
+                <div className="if-live-intro__sub">
+                  여러 종목을 추가하면 포트폴리오 분석이 가능합니다.
+                  비중은 100%가 아니어도 자동으로 조정됩니다.
+                </div>
+              </div>
+
+              {/* Search Area */}
+              <div className="if-live-panel__search-section">
+                <StockSearch onAdd={addLiveHolding} />
+              </div>
+
+              <div className="if-live-panel__main">
+                {liveHoldings.length === 0 ? (
+                  <div className="if-live-empty">
+                    <div className="if-live-empty__icon">🚀</div>
+                    <div className="if-live-empty__text">어떤 종목을 분석해볼까요?</div>
+                    <div className="if-live-empty__sub">
+                      위 검색창에 입력하거나 아래 추천 태그를 클릭하세요
+                    </div>
+                    <button
+                      type="button"
+                      className="if-live-empty__quickstart"
+                      onClick={quickStartPortfolio}
+                      title="삼성전자 60% + SK하이닉스 40%로 즉시 시작"
+                    >
+                      📊 추천 포트폴리오로 시작
+                    </button>
+                  </div>
+                ) : (
+                  <div className="if-live-list">
+                    {liveHoldings.map(h => (
+                      <div key={h.symbol} className="if-live-card">
+                        <div className="if-live-card__info">
+                          <span className="if-live-card__sym">{h.symbol}</span>
+                          <span className="if-live-card__price">{h.price || '시세 확인 중...'}</span>
+                        </div>
+
+                        <div className="if-live-card__control">
+                          <div className="if-live-card__input-label">목표 비중</div>
+                          <div className="if-live-card__input-wrap">
+                            <input
+                              type="number"
+                              className="if-live-card__input"
+                              value={h.weight === 0 ? '' : (h.weight * 100).toFixed(0)}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const { updateLiveHoldingWeight } = useStore.getState();
+                                updateLiveHoldingWeight(h.symbol, val / 100);
+                              }}
+                              placeholder="0"
+                              min="0"
+                              max="100"
+                            />
+                            <span className="if-live-card__unit">%</span>
+                          </div>
+                          <button
+                            className="if-live-card__remove"
+                            onClick={() => removeLiveHolding(h.symbol)}
+                            title="삭제"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 비중 합계 안내 (비중이 0일 때만 크게 표시) */}
+                {liveHoldings.length > 0 && liveTotalWeight === 0 && (
+                  <div className="if-live-guide">
+                    <div className="if-live-guide__icon">💡</div>
+                    <div className="if-live-guide__text">추가된 종목의 비중을 설정해 보세요</div>
+                    <div className="if-live-guide__sub">입력하신 비율에 따라 자동으로 포트폴리오가 구성됩니다</div>
+                  </div>
+                )}
+
+                <div className="if-live-panel__footer">
+                  <div className="if-live-total">
+                    <span className="if-live-total__label">비중 합계:</span>
+                    <span className={`if-live-total__value ${isLiveTotal100 ? 'is-valid' : ''}`}>
+                      {(liveTotalWeight * 100).toFixed(1)}%
+                    </span>
+                    {!isLiveTotal100 && liveTotalWeight > 0 && (
+                      <span className="if-live-total__info">
+                        ℹ️ 100%가 아니어도 비율에 맞춰 자동 조정됩니다.
+                      </span>
+                    )}
+                    {isLiveTotal100 && (
+                      <span className="if-live-total__info if-live-total__info--ok">
+                        ✓ 분석 준비 완료
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    className={`if-live-panel__run ${isLiveTotal100 ? 'is-pulse' : ''}`}
+                    onClick={applyLiveData}
+                    disabled={liveHoldings.length === 0 || isLiveLoading || liveTotalWeight <= 0}
+                  >
+                    {isLiveLoading ? '⏳ 데이터 수집 및 분석 중...' : '🔥 포트폴리오 분석 시작'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
 
           {liveError && (
             <div className="if-live-error">
@@ -280,7 +387,22 @@ export default function Dashboard() {
       {/* BODY */}
       <div className="if-body">
         <main className="if-main">
-          {/* 시나리오 */}
+          {/* 시나리오 영역 */}
+          {!isScenarioHintDismissed && (
+            <div className="if-scenario-hint" role="status">
+              <span className="if-scenario-hint__icon">💡</span>
+              <span className="if-scenario-hint__text">
+                시나리오를 바꾸면 화면 구성이 자동으로 재구성됩니다.
+              </span>
+              <button
+                type="button"
+                className="if-scenario-hint__close"
+                onClick={dismissScenarioHint}
+                aria-label="힌트 닫기"
+                title="다시 보지 않기"
+              >×</button>
+            </div>
+          )}
           <div className="if-scenario-bar" role="tablist" aria-label="분석 시나리오">
             {scenarios.map(s => (
               <button
@@ -297,7 +419,7 @@ export default function Dashboard() {
           </div>
 
           {/* 시나리오 설명 + 사용자 데이터 표시 */}
-          <div className="if-scenario-desc">
+          <div className="if-scenario-desc" key={scenarioId}>
             <span className="if-scenario-desc__icon">⚙</span>
             <span className="if-scenario-desc__text">
               <strong>{scenario.label}</strong> — {scenario.description}
@@ -326,7 +448,9 @@ export default function Dashboard() {
             <Gauge value={heroValue} label={heroLabel} />
             <div className="if-hero__body">
               <div className="if-hero__label">
-                {heroLabel} — <span style={{ color: heroGrade.color }}>{heroGrade.label}</span>
+                {heroLabel} — <span style={{ color: heroBand.color }}>
+                  {Math.round(heroValue)}점 {heroBand.label}
+                </span>
               </div>
               <div className="if-hero__message">{heroMessage}</div>
               <div className="if-hero__meta">
@@ -344,26 +468,79 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+            {insights.length > 0 && (
+              <div className="if-hero__cta">
+                <button
+                  type="button"
+                  className="if-hero__cta-btn"
+                  onClick={scrollToInsights}
+                  title="실행 가능 인사이트 영역으로 이동"
+                >
+                  ➡️ 인사이트 보기
+                </button>
+                <div className="if-hero__cta-meta">{insights.length}건 트리거됨</div>
+              </div>
+            )}
           </section>
 
-          {/* KPI */}
-          <SectionLabel
-            title="핵심 지표"
-            rule={`metric-rules.md → viz-rules.md (${visibleKpis.length}개 KPI)`}
-          />
-          <div className="if-kpi-grid">
-            {visibleKpis.map(def => (
-              <KpiCard
-                key={def.id}
-                label={def.label}
-                value={metrics[def.id]}
-                format={def.format}
-                metricId={def.id}
-                isCustom={def.isCustom}
-                tooltip={def.id === 'volatility' ? volatilityTooltip : null}
-              />
-            ))}
-          </div>
+          {/* KPI — 자체 지표 (강조) + 기본 지표 (보조) 2단 구조 */}
+          {(() => {
+            const customKpis = visibleKpis.filter(d => d.isCustom);
+            const basicKpis  = visibleKpis.filter(d => !d.isCustom);
+            return (
+              <>
+                {customKpis.length > 0 && (
+                  <>
+                    <SectionLabel
+                      title="⭐ Insight Forge 자체 지표"
+                      rule={`metric-rules.md (${customKpis.length}종 차별점)`}
+                      accent="gold"
+                    />
+                    <div className="if-kpi-grid if-kpi-grid--featured">
+                      {customKpis.map(def => (
+                        <KpiCard
+                          key={def.id}
+                          label={def.label}
+                          value={metrics[def.id]}
+                          format={def.format}
+                          metricId={def.id}
+                          isCustom={def.isCustom}
+                          tooltip={def.id === 'volatility' ? volatilityTooltip : null}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {basicKpis.length > 0 && (
+                  <>
+                    <SectionLabel
+                      title="📊 기본 지표"
+                      rule={`viz-rules.md (${basicKpis.length}개 KPI)`}
+                      collapsible
+                      collapsed={!showBasicKpis}
+                      onToggle={() => setShowBasicKpis(v => !v)}
+                    />
+                    {showBasicKpis && (
+                      <div className="if-kpi-grid if-kpi-grid--basic">
+                        {basicKpis.map(def => (
+                          <KpiCard
+                            key={def.id}
+                            label={def.label}
+                            value={metrics[def.id]}
+                            format={def.format}
+                            metricId={def.id}
+                            isCustom={def.isCustom}
+                            tooltip={def.id === 'volatility' ? volatilityTooltip : null}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            );
+          })()}
 
           {/* 추세 분석 — 시나리오에 따라 표시/숨김/축소 */}
           {showTrend && !trendCollapsed && (
@@ -414,6 +591,7 @@ export default function Dashboard() {
           )}
 
           {/* 인사이트 */}
+          <div ref={insightsRef} id="insights-anchor" />
           <SectionLabel
             title="실행 가능 인사이트"
             rule={`insight-rules.md · ${insights.length}건 트리거${scenario.insightFilter ? ' (필터 적용)' : ''}`}
@@ -447,15 +625,36 @@ export default function Dashboard() {
         onClose={closeUploader}
         onApply={applyUserData}
       />
+
+      <OnboardingModal />
     </div>
   );
 }
 
-function SectionLabel({ title, rule }) {
+function ControlField({ label, tip, children }) {
   return (
-    <div className="if-section-label">
-      <span>{title}</span>
+    <div className="if-control-field" title={tip}>
+      <div className="if-control-field__label">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ title, rule, accent, collapsible, collapsed, onToggle }) {
+  return (
+    <div className={`if-section-label ${accent ? `if-section-label--${accent}` : ''}`}>
+      <span className="if-section-label__title">{title}</span>
       <span className="if-section-label__rule">⚙ {rule}</span>
+      {collapsible && (
+        <button
+          type="button"
+          className="if-section-label__toggle"
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+        >
+          {collapsed ? '펼치기 ▾' : '접기 ▴'}
+        </button>
+      )}
     </div>
   );
 }

@@ -2,12 +2,56 @@ import { create } from 'zustand';
 import { loadBundle } from '../core/parser.js';
 import { buildUserDataset, buildLiveDataset } from '../core/datasets.js';
 
+const INSPECTOR_LS_KEY = 'if.inspector.open';
+const SCENARIO_HINT_LS_KEY = 'if.scenarioHint.dismissed';
+const ONBOARDED_LS_KEY = 'if.onboarded';
+
+function readLs(key, fallback) {
+  if (typeof window === 'undefined') return fallback;
+  try { return window.localStorage.getItem(key); }
+  catch { return fallback; }
+}
+function writeLs(key, value) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(key, value); }
+  catch { /* ignore */ }
+}
+function readInspectorPref() { return readLs(INSPECTOR_LS_KEY, '0') === '1'; }
+function writeInspectorPref(open) { writeLs(INSPECTOR_LS_KEY, open ? '1' : '0'); }
+
 export const useStore = create((set, get) => ({
   bundleId: 'insight-forge-default',
   datasetId: 'balanced',
   scenarioId: 'personal_default',
   bundle: null,
   isLoading: false,
+
+  // Skills.md Inspector 토글 (기본 닫힘, localStorage에 영속화)
+  isInspectorOpen: readInspectorPref(),
+  toggleInspector: () => {
+    const next = !get().isInspectorOpen;
+    writeInspectorPref(next);
+    set({ isInspectorOpen: next });
+  },
+  closeInspector: () => {
+    writeInspectorPref(false);
+    set({ isInspectorOpen: false });
+  },
+
+  // 시나리오 한 줄 힌트 닫음 상태
+  isScenarioHintDismissed: readLs(SCENARIO_HINT_LS_KEY, '0') === '1',
+  dismissScenarioHint: () => {
+    writeLs(SCENARIO_HINT_LS_KEY, '1');
+    set({ isScenarioHintDismissed: true });
+  },
+
+  // 온보딩 모달 (기본 한 번도 본 적 없으면 표시)
+  isOnboardingOpen: readLs(ONBOARDED_LS_KEY, null) !== '1',
+  closeOnboarding: (remember = true) => {
+    if (remember) writeLs(ONBOARDED_LS_KEY, '1');
+    set({ isOnboardingOpen: false });
+  },
+  openOnboarding: () => set({ isOnboardingOpen: true }),
 
   // 사용자 업로드 데이터
   userDataset: null,
@@ -18,6 +62,7 @@ export const useStore = create((set, get) => ({
   isLiveLoading: false,
   liveError: null,
   liveHoldings: [],   // [{symbol, weight}] — 사용자가 추가한 종목 목록
+  isLiveInputCollapsed: false,  // 분석 시작 후 입력 영역 자동 접힘
 
   setBundle: async (bundleId) => {
     set({ bundleId, isLoading: true });
@@ -49,11 +94,26 @@ export const useStore = create((set, get) => ({
   // 실시간 모드 토글
   toggleLiveMode: () => {
     const { isLiveMode } = get();
-    set({ isLiveMode: !isLiveMode, liveError: null });
+    set({ isLiveMode: !isLiveMode, liveError: null, isLiveInputCollapsed: false });
     if (isLiveMode) {
       // 더미 모드로 복귀 시 live 데이터 지우기
       set({ userDataset: null, datasetId: 'balanced', liveHoldings: [] });
     }
+  },
+
+  // 입력 영역 접힘 토글 (분석 시작 후 결과 영역 강조)
+  toggleLiveInputCollapsed: () =>
+    set((s) => ({ isLiveInputCollapsed: !s.isLiveInputCollapsed })),
+  expandLiveInput: () => set({ isLiveInputCollapsed: false }),
+
+  // 빠른 시작 — 추천 포트폴리오로 즉시 채움
+  quickStartPortfolio: async () => {
+    const { addLiveHolding, updateLiveHoldingWeight } = get();
+    // 삼성전자 60% + SK하이닉스 40%
+    await addLiveHolding('삼성전자');
+    await addLiveHolding('SK하이닉스');
+    updateLiveHoldingWeight('삼성전자', 0.6);
+    updateLiveHoldingWeight('SK하이닉스', 0.4);
   },
 
   // 실시간 종목 추가
@@ -114,7 +174,8 @@ export const useStore = create((set, get) => ({
     set({ isLiveLoading: true, liveError: null });
     try {
       const dataset = await buildLiveDataset(liveHoldings);
-      set({ userDataset: dataset, datasetId: '__live__', isLiveLoading: false });
+      // 분석 성공 시 입력 영역 자동 접힘 → 결과 영역 강조
+      set({ userDataset: dataset, datasetId: '__live__', isLiveLoading: false, isLiveInputCollapsed: true });
     } catch (e) {
       set({ liveError: e.message, isLiveLoading: false });
     }
