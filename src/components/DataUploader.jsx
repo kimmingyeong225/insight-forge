@@ -35,14 +35,30 @@ KODEX 200,0.05`;
 ]`;
 
   // 다운로드용 양식 (4컬럼 full schema, weight 합계 1.00 Phase 10 가드 통과)
-  const downloadCSV = `symbol,weight,quantity,avg_price
+  // CSV 는 '#' 시작 주석 라인 + 빈 라인 skip — 파서 (parsePastedText) 가 자동 처리
+  const downloadCSV = `# Insight Forge — 포트폴리오 샘플 (CSV)
+# 컬럼 안내:
+#   symbol     : 종목명 또는 코드 (필수, 예: 삼성전자, AAPL)
+#   weight     : 비중, 0~1 사이 (필수, 합계 1.0)
+#   quantity   : 보유 수량 (선택)
+#   avg_price  : 평단가 (선택)
+symbol,weight,quantity,avg_price
 삼성전자,0.40,50,72000
 SK하이닉스,0.30,10,135000
 NAVER,0.20,5,195000
 카카오,0.10,8,56000
 `;
 
+  // JSON 은 표준 주석 불가 — _comment / _columns prefix 필드로 메타 명시
+  // 파서는 holdings 만 읽으므로 _ 필드 자연 무시
   const downloadJSON = `{
+  "_comment": "Insight Forge — 포트폴리오 샘플 (JSON)",
+  "_columns": {
+    "symbol": "종목명 또는 코드 (필수, 예: 삼성전자, AAPL)",
+    "weight": "비중, 0~1 사이 (필수, 합계 1.0)",
+    "quantity": "보유 수량 (선택)",
+    "avg_price": "평단가 (선택)"
+  },
   "holdings": [
     { "symbol": "삼성전자",   "weight": 0.40, "quantity": 50, "avg_price": 72000 },
     { "symbol": "SK하이닉스", "weight": 0.30, "quantity": 10, "avg_price": 135000 },
@@ -80,7 +96,10 @@ NAVER,0.20,5,195000
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       try {
         const data = JSON.parse(trimmed);
-        const arr = Array.isArray(data) ? data : [data];
+        // 배열 직접 | { holdings: [...] } 형태 | 단일 객체 모두 처리
+        const arr = Array.isArray(data) ? data
+                  : Array.isArray(data?.holdings) ? data.holdings
+                  : [data];
         return arr.map(row => {
           const mapped = mapColumns(row);
           return {
@@ -93,8 +112,11 @@ NAVER,0.20,5,195000
       }
     }
 
-    // CSV 처리
-    const lines = trimmed.split(/\r?\n/).filter(l => l.trim());
+    // CSV 처리 — '#' 시작 주석 라인 + 빈 라인 skip
+    const lines = trimmed.split(/\r?\n/).filter(l => {
+      const t = l.trim();
+      return t !== '' && !t.startsWith('#');
+    });
     if (lines.length < 2) {
       throw new Error('CSV는 최소 헤더 + 1행 데이터가 필요합니다');
     }

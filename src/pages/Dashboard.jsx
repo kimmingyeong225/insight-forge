@@ -281,7 +281,6 @@ export default function Dashboard() {
                 <div className="if-live-intro__title">📊 분석할 종목을 추가하세요</div>
                 <div className="if-live-intro__sub">
                   여러 종목을 추가하면 포트폴리오 분석이 가능합니다.
-                  비중은 100%가 아니어도 자동으로 조정됩니다.
                 </div>
               </div>
 

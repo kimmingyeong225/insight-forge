@@ -1624,6 +1624,63 @@
   line-height: 1.5;
 }
 
+/* 지원 종목 목록 (접기/펼치기) */
+.if-search-supported {
+  margin-top: 10px;
+  padding-left: 2px;
+}
+.if-search-supported__summary {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.55);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+.if-search-supported__summary::-webkit-details-marker { display: none; }
+.if-search-supported__summary::marker { content: ''; }
+.if-search-supported__summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.15s ease;
+  font-size: 10px;
+}
+.if-search-supported[open] .if-search-supported__summary::before {
+  transform: rotate(90deg);
+}
+.if-search-supported__summary:hover { color: var(--if-gold); }
+
+.if-search-supported__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.if-search-supported__item {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(245, 241, 232, 0.85);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.if-search-supported__item:hover {
+  background: rgba(186, 117, 23, 0.18);
+  border-color: var(--if-gold);
+  color: var(--if-cream);
+}
+
 /* 추천 태그 */
 .if-search-tags {
   display: flex;
