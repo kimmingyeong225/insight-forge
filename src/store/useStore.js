@@ -128,13 +128,25 @@ export const useStore = create((set, get) => ({
     try {
       const { fetchRealSeries } = await import('../core/datasets.js');
       const { getYahooSymbol } = await import('../core/symbolMap.js');
-      const res = await fetchRealSeries(getYahooSymbol(symbol));
+      const apiSymbol = getYahooSymbol(symbol);
+      const res = await fetchRealSeries(apiSymbol);
       if (res.success && res.series?.length > 0) {
         const lastPrice = res.series[res.series.length - 1].close;
-        const formattedPrice = new Intl.NumberFormat('ko-KR', { style: 'currency', currency: symbol.includes('/') ? 'USD' : 'KRW' }).format(lastPrice);
-        
+        // API 심볼 패턴으로 통화 분류: '/' 포함=크립토 USD, 숫자만=KR 주식 KRW, 그 외=US 주식 USD
+        const currency = apiSymbol.includes('/') ? 'USD'
+                       : /^\d+$/.test(apiSymbol) ? 'KRW'
+                       : 'USD';
+        const locale = currency === 'KRW' ? 'ko-KR' : 'en-US';
+        const fractionDigits = currency === 'KRW' ? 0 : 2;
+        const formattedPrice = new Intl.NumberFormat(locale, {
+          style: 'currency',
+          currency,
+          minimumFractionDigits: fractionDigits,
+          maximumFractionDigits: fractionDigits,
+        }).format(lastPrice);
+
         set(state => ({
-          liveHoldings: state.liveHoldings.map(h => 
+          liveHoldings: state.liveHoldings.map(h =>
             h.symbol === symbol ? { ...h, price: formattedPrice } : h
           )
         }));
