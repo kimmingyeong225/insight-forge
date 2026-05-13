@@ -101,6 +101,10 @@ export default function StockSearch({ onAdd, domain = 'stock' }) {
         )}
       </div>
 
+      <div className="if-search-disclaimer">
+        ℹ️ 본 프로토타입은 원활한 라이브 시연과 시스템 안정성을 위해, 테스트에 최적화된 주요 20개 종목을 기준으로 연동되어 있습니다.
+      </div>
+
       <div className="if-search-tags">
         <span className="if-search-tags__label">자주 찾는 종목:</span>
         {QUICK_TAGS.filter(t => t.domain === domain).map(({ label }) => (

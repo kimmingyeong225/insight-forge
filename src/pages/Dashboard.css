@@ -1616,6 +1616,14 @@
   border-radius: 4px;
 }
 
+.if-search-disclaimer {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.5);
+  margin-top: 10px;
+  padding-left: 2px;
+  line-height: 1.5;
+}
+
 /* 추천 태그 */
 .if-search-tags {
   display: flex;
