@@ -34,13 +34,16 @@ export default function DonutChart({ holdings, isCrypto = false }) {
             </Pie>
             <Tooltip
               contentStyle={{
-                background: '#0F1B3D',
-                border: 'none',
+                background: 'white',
+                border: '1px solid rgba(15, 27, 61, 0.15)',
                 borderRadius: '6px',
                 fontSize: '12px',
-                color: '#F5F1E8',
+                color: '#0F1B3D',
                 padding: '6px 10px',
+                boxShadow: '0 2px 8px rgba(15, 27, 61, 0.12)',
               }}
+              labelStyle={{ color: '#0F1B3D', fontWeight: 600 }}
+              itemStyle={{ color: '#0F1B3D' }}
               formatter={(v) => [`${v.toFixed(1)}%`, '비중']}
             />
           </PieChart>
