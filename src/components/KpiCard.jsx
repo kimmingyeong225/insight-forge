@@ -5,12 +5,18 @@ import { evaluateGrade } from '../core/vizRouter.js';
  * viz-rules.md 4.4 항목의 KpiCard 스타일을 따름
  */
 export default function KpiCard({ label, value, format, metricId, isCustom = false, tooltip = null }) {
-  const hasValue = value != null && !(typeof value === 'number' && Number.isNaN(value));
-  const grade = hasValue ? evaluateGrade(metricId, value) : null;
-  const formattedValue = format(value);
+  const isInvalid = 
+    value === null || 
+    value === undefined || 
+    (typeof value === 'number' && isNaN(value)) || 
+    value === '—' || 
+    value === 'NaN';
+
+  const grade = evaluateGrade(metricId, value);
+  const formattedValue = isInvalid ? '—' : format(value);
 
   return (
-    <div className={`if-kpi ${isCustom ? 'if-kpi--featured' : ''}`}>
+    <div className={`if-kpi ${isCustom ? 'if-kpi--featured' : ''} ${isInvalid ? 'is-disabled' : ''}`}>
       {isCustom && (
         <span className="if-kpi__star" title="Insight Forge 자체 정의 지표">★</span>
       )}
@@ -31,11 +37,14 @@ export default function KpiCard({ label, value, format, metricId, isCustom = fal
         )}
       </div>
       <div className="if-kpi__value">
-        {typeof value === 'number' || typeof value === 'string' 
-          ? String(formattedValue) 
-          : '—'}
+        {formattedValue}
+        {isInvalid && (
+          <div>
+            <span className="if-kpi__missing-badge">온체인 데이터 연동 필요</span>
+          </div>
+        )}
       </div>
-      {hasValue && grade?.label && (
+      {!isInvalid && grade.label && (
         <span
           className="if-kpi__grade"
           style={{ color: grade.color, background: grade.bg }}

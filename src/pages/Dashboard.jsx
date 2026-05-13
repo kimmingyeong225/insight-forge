@@ -161,6 +161,12 @@ export default function Dashboard() {
     );
   }, [rawDataset]);
 
+  const onchainTooltip = (
+    <div style={{ maxWidth: '200px' }}>
+      해당 지표는 심화 온체인(On-chain) 네트워크 데이터가 필요하며, 현재 연결된 Basic API 환경에서는 제공되지 않습니다.
+    </div>
+  );
+
   // 시나리오별 섹션 표시 여부 (report-rules.md)
   const showTrend = !scenario.executiveBrief && !scenario.hideSections?.includes('trend_hidden');
   const showComposition = !scenario.executiveBrief && !scenario.hideSections?.includes('composition_hidden');
@@ -511,6 +517,19 @@ export default function Dashboard() {
           {(() => {
             const customKpis = visibleKpis.filter(d => d.isCustom);
             const basicKpis  = visibleKpis.filter(d => !d.isCustom);
+            
+            const getTooltip = (defId) => {
+              if (defId === 'volatility') return volatilityTooltip;
+              if (isCrypto && [
+                'nvt_ratio', 
+                'active_address_momentum', 
+                'volatility_adjusted_risk_score', 
+                'fundamental_divergence', 
+                'btc_dominance'
+              ].includes(defId)) return onchainTooltip;
+              return null;
+            };
+
             return (
               <>
                 {customKpis.length > 0 && (
@@ -529,7 +548,7 @@ export default function Dashboard() {
                           format={def.format}
                           metricId={def.id}
                           isCustom={def.isCustom}
-                          tooltip={def.id === 'volatility' ? volatilityTooltip : null}
+                          tooltip={getTooltip(def.id)}
                         />
                       ))}
                     </div>
@@ -555,7 +574,7 @@ export default function Dashboard() {
                             format={def.format}
                             metricId={def.id}
                             isCustom={def.isCustom}
-                            tooltip={def.id === 'volatility' ? volatilityTooltip : null}
+                            tooltip={getTooltip(def.id)}
                           />
                         ))}
                       </div>
