@@ -137,9 +137,12 @@ KODEX 200,0.05`;
       <div className="if-modal" onClick={(e) => e.stopPropagation()}>
         <div className="if-modal__header">
           <div>
-            <div className="if-modal__title">데이터 업로드</div>
+            <div className="if-modal__title-row">
+              <div className="if-modal__title">데이터 업로드</div>
+              <span className="if-modal__badge">CSV / JSON 지원</span>
+            </div>
             <div className="if-modal__sub">
-              CSV / JSON 형식 — data-rules.md의 컬럼 매핑 규칙이 자동 적용됩니다
+              data-rules.md의 컬럼 매핑 규칙이 자동 적용됩니다
             </div>
           </div>
           <button className="if-modal__close" onClick={onClose}>×</button>

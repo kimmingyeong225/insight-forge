@@ -449,6 +449,7 @@ export default function Dashboard() {
                   {Math.round(heroValue)}점 {heroBand.label}
                 </span>
               </div>
+              <div className="if-hero__identity">Skills 기반 규칙 엔진으로 생성된 포트폴리오 분석 결과</div>
               <div className="if-hero__message">{heroMessage}</div>
               <div className="if-hero__meta">
                 {bundle?.id || bundleId} · {rawDataset.name} · 시나리오: {scenario.label}

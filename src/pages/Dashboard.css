@@ -126,6 +126,8 @@
 .if-inspector-toggle:hover {
   background: rgba(245, 241, 232, 0.18);
   border-color: var(--if-gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 .if-inspector-toggle.is-open {
   background: var(--if-gold);
@@ -288,6 +290,14 @@
   margin-bottom: 8px;
 }
 
+.if-hero__identity {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(245, 241, 232, 0.72);
+  margin-bottom: 10px;
+  font-family: var(--if-font-mono);
+}
+
 .if-hero__message {
   font-family: var(--if-font-serif);
   font-size: 24px;
@@ -326,7 +336,7 @@
 }
 
 .if-cta-upload__btn {
-  background: var(--if-gold);
+  background: linear-gradient(135deg, var(--if-navy) 0%, var(--if-navy-soft) 100%);
   color: white;
   border: none;
   padding: 12px 22px;
@@ -335,14 +345,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(186, 117, 23, 0.35);
+  box-shadow: 0 4px 14px rgba(15, 27, 61, 0.28);
   white-space: nowrap;
   flex-shrink: 0;
 }
 .if-cta-upload__btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(186, 117, 23, 0.5);
-  background: #d18820;
+  box-shadow: 0 8px 22px rgba(15, 27, 61, 0.38);
+  background: linear-gradient(135deg, var(--if-navy-soft) 0%, #243773 100%);
 }
 .if-cta-upload__btn:active {
   transform: translateY(0);
@@ -935,6 +945,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  color: rgba(15, 27, 61, 0.78);
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .if-pipeline__dot {
@@ -1095,12 +1108,31 @@
   border-bottom: 1px solid var(--if-border);
 }
 
+.if-modal__title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+
 .if-modal__title {
   font-family: var(--if-font-serif);
   font-size: 20px;
   font-style: italic;
   color: var(--if-navy);
-  margin-bottom: 3px;
+}
+
+.if-modal__badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--if-cream);
+  color: var(--if-navy);
+  border: 1px solid rgba(15, 27, 61, 0.15);
+  font-family: var(--if-font-mono);
+  white-space: nowrap;
 }
 
 .if-modal__sub {
