@@ -111,11 +111,11 @@ export default function StockSearch({ onAdd, domain = 'stock' }) {
       </div>
 
       <div className="if-search-disclaimer">
-        ℹ️ 본 프로토타입은 원활한 라이브 시연과 시스템 안정성을 위해, 테스트에 최적화된 주요 20개 종목을 기준으로 연동되어 있습니다.
+        ℹ️ 본 프로토타입은 원활한 라이브 시연과 시스템 안정성을 위해, 테스트에 최적화된 주요 {SUPPORTED_NAMES.length}개 종목을 기준으로 연동되어 있습니다.
       </div>
 
       <details className="if-search-supported">
-        <summary className="if-search-supported__summary">📋 지원 종목 목록 보기</summary>
+        <summary className="if-search-supported__summary">📋 지원 종목 목록 보기 ({SUPPORTED_NAMES.length})</summary>
         <div className="if-search-supported__list">
           {SUPPORTED_NAMES.map(name => (
             <button
