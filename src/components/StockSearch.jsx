@@ -3,7 +3,17 @@ import { SYMBOL_MAP } from '../core/symbolMap.js';
 
 const ALL_NAMES = Object.keys(SYMBOL_MAP);
 
-export default function StockSearch({ onAdd }) {
+const QUICK_TAGS = [
+  { label: '삼성전자', domain: 'stock' },
+  { label: 'Apple',    domain: 'stock' },
+  { label: 'NVIDIA',   domain: 'stock' },
+  { label: 'Tesla',    domain: 'stock' },
+  { label: 'Bitcoin',  domain: 'crypto' },
+  { label: 'Ethereum', domain: 'crypto' },
+  { label: 'Solana',   domain: 'crypto' },
+];
+
+export default function StockSearch({ onAdd, domain = 'stock' }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [focused, setFocused] = useState(false);
@@ -93,14 +103,14 @@ export default function StockSearch({ onAdd }) {
 
       <div className="if-search-tags">
         <span className="if-search-tags__label">자주 찾는 종목:</span>
-        {['삼성전자', '비트코인', 'Apple', 'NVIDIA', 'Tesla'].map(tag => (
+        {QUICK_TAGS.filter(t => t.domain === domain).map(({ label }) => (
           <button
-            key={tag}
+            key={label}
             type="button"
             className="if-search-tag"
-            onClick={() => handleSelect(tag)}
+            onClick={() => handleSelect(label)}
           >
-            #{tag}
+            #{label}
           </button>
         ))}
       </div>

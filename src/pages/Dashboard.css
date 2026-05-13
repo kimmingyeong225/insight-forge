@@ -1735,11 +1735,17 @@
   color: var(--if-info);
 }
 .if-live-total__value.is-valid { color: #10b981; }
+.if-live-total__value.is-warning { color: #F59E0B; }
 
 .if-live-total__info {
   color: rgba(245, 241, 232, 0.3);
   font-size: 13px;
   font-style: italic;
+}
+.if-live-total__info--warn {
+  color: #F59E0B;
+  font-style: normal;
+  font-weight: 500;
 }
 
 .if-live-panel__run {

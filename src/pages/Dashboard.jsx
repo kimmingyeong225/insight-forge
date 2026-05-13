@@ -6,7 +6,6 @@ import { getDataset, getDatasetList } from '../core/datasets.js';
 import { getScenarios, getScenario } from '../core/scenarios.js';
 import { getKpiDefinitions } from '../core/kpiDefinitions.js';
 import { gradeColor } from '../core/vizRouter.js';
-import { normalizePortfolio } from '../core/normalizer.js';
 
 import KpiCard from '../components/KpiCard.jsx';
 import LineChart from '../components/LineChart.jsx';
@@ -59,10 +58,20 @@ export default function Dashboard() {
     return getDataset(bundleId, datasetId);
   }, [bundleId, datasetId, userDataset]);
 
-  const { holdings, warning } = useMemo(
-    () => normalizePortfolio(rawDataset.holdings),
-    [rawDataset]
-  );
+  const { holdings, warning } = useMemo(() => {
+    const list = Array.isArray(rawDataset.holdings) ? rawDataset.holdings : [];
+    const identity = list.map(h => ({
+      symbol: h.symbol,
+      weight: parseFloat(h.weight) || 0,
+      quantity: h.quantity,
+      avg_price: h.avg_price,
+    }));
+    const sum = identity.reduce((acc, h) => acc + h.weight, 0);
+    const warn = (identity.length > 0 && Math.abs(sum - 1.0) > 0.01)
+      ? `포트폴리오 비중 합계가 ${(sum * 100).toFixed(1)}% 입니다. 100%로 맞춰 다시 시도해주세요.`
+      : null;
+    return { holdings: identity, warning: warn };
+  }, [rawDataset]);
 
   const computedMetrics = useMemo(() => {
     return computeAllMetrics({
@@ -272,7 +281,7 @@ export default function Dashboard() {
 
               {/* Search Area */}
               <div className="if-live-panel__search-section">
-                <StockSearch onAdd={addLiveHolding} />
+                <StockSearch onAdd={addLiveHolding} domain={isCrypto ? 'crypto' : 'stock'} />
               </div>
 
               <div className="if-live-panel__main">
@@ -346,12 +355,12 @@ export default function Dashboard() {
                 <div className="if-live-panel__footer">
                   <div className="if-live-total">
                     <span className="if-live-total__label">비중 합계:</span>
-                    <span className={`if-live-total__value ${isLiveTotal100 ? 'is-valid' : ''}`}>
-                      {(liveTotalWeight * 100).toFixed(1)}%
+                    <span className={`if-live-total__value ${isLiveTotal100 ? 'is-valid' : (liveTotalWeight > 0 ? 'is-warning' : '')}`}>
+                      {isLiveTotal100 ? '✅ ' : (liveTotalWeight > 0 ? '⚠️ ' : '')}{(liveTotalWeight * 100).toFixed(1)}%
                     </span>
                     {!isLiveTotal100 && liveTotalWeight > 0 && (
-                      <span className="if-live-total__info">
-                        ℹ️ 100%가 아니어도 비율에 맞춰 자동 조정됩니다.
+                      <span className="if-live-total__info if-live-total__info--warn">
+                        비중 합계를 100%로 조정해주세요
                       </span>
                     )}
                     {isLiveTotal100 && (
@@ -363,7 +372,7 @@ export default function Dashboard() {
                   <button
                     className={`if-live-panel__run ${isLiveTotal100 ? 'is-pulse' : ''}`}
                     onClick={applyLiveData}
-                    disabled={liveHoldings.length === 0 || isLiveLoading || liveTotalWeight <= 0}
+                    disabled={liveHoldings.length === 0 || isLiveLoading || !isLiveTotal100}
                   >
                     {isLiveLoading ? '⏳ 데이터 수집 및 분석 중...' : '🔥 포트폴리오 분석 시작'}
                   </button>
