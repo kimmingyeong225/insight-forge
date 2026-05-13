@@ -1203,6 +1203,72 @@
   color: var(--if-cream);
 }
 
+.if-btn--download {
+  background: var(--if-cream);
+  border-color: rgba(186, 117, 23, 0.35);
+  color: var(--if-navy);
+  font-weight: 600;
+}
+.if-btn--download:hover {
+  background: #FAEEDA;
+  border-color: var(--if-gold);
+}
+
+/* 컬럼 양식 가이드 */
+.if-modal__schema-hint {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: var(--if-cream);
+  border: 1px solid rgba(15, 27, 61, 0.12);
+  border-left: 3px solid var(--if-gold);
+  border-radius: 6px;
+}
+.if-modal__schema-hint-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--if-navy);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.if-modal__schema-hint-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.if-modal__schema-hint-list li {
+  font-size: 12px;
+  color: var(--if-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.if-modal__schema-hint-list code {
+  font-family: var(--if-font-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  background: white;
+  border: 1px solid rgba(15, 27, 61, 0.1);
+  border-radius: 3px;
+  color: var(--if-navy);
+}
+.if-modal__schema-hint-tag {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(15, 27, 61, 0.06);
+  color: var(--if-text-muted);
+  font-weight: 500;
+}
+.if-modal__schema-hint-tag--required {
+  background: rgba(186, 117, 23, 0.12);
+  color: var(--if-gold);
+}
+
 .if-modal__textarea {
   width: 100%;
   min-height: 140px;

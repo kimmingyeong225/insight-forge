@@ -18,7 +18,7 @@ export default function DataUploader({ open, onClose, onApply }) {
 
   if (!open) return null;
 
-  // 샘플 데이터
+  // 샘플 데이터 (in-app textarea 채우기 — Korean alias 시연용 2컬럼)
   const sampleCSV = `종목,비중
 삼성전자,0.35
 SK하이닉스,0.25
@@ -33,6 +33,44 @@ KODEX 200,0.05`;
   {"symbol": "LG에너지솔루션", "weight": 0.15},
   {"symbol": "KODEX 200", "weight": 0.05}
 ]`;
+
+  // 다운로드용 양식 (4컬럼 full schema, weight 합계 1.00 Phase 10 가드 통과)
+  const downloadCSV = `symbol,weight,quantity,avg_price
+삼성전자,0.40,50,72000
+SK하이닉스,0.30,10,135000
+NAVER,0.20,5,195000
+카카오,0.10,8,56000
+`;
+
+  const downloadJSON = `{
+  "holdings": [
+    { "symbol": "삼성전자",   "weight": 0.40, "quantity": 50, "avg_price": 72000 },
+    { "symbol": "SK하이닉스", "weight": 0.30, "quantity": 10, "avg_price": 135000 },
+    { "symbol": "NAVER",      "weight": 0.20, "quantity": 5,  "avg_price": 195000 },
+    { "symbol": "카카오",     "weight": 0.10, "quantity": 8,  "avg_price": 56000 }
+  ]
+}
+`;
+
+  function downloadFile(filename, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadSample(type) {
+    if (type === 'csv') {
+      downloadFile('insight-forge-sample.csv', downloadCSV, 'text/csv;charset=utf-8');
+    } else {
+      downloadFile('insight-forge-sample.json', downloadJSON, 'application/json;charset=utf-8');
+    }
+  }
 
   function parsePastedText(text) {
     if (!text.trim()) return null;
@@ -162,6 +200,19 @@ KODEX 200,0.05`;
             </label>
             <button className="if-btn" onClick={() => loadSample('csv')}>CSV 샘플 불러오기</button>
             <button className="if-btn" onClick={() => loadSample('json')}>JSON 샘플 불러오기</button>
+            <button className="if-btn if-btn--download" onClick={() => downloadSample('csv')}>⬇ CSV 양식 다운로드</button>
+            <button className="if-btn if-btn--download" onClick={() => downloadSample('json')}>⬇ JSON 양식 다운로드</button>
+          </div>
+
+          {/* 컬럼 양식 가이드 */}
+          <div className="if-modal__schema-hint">
+            <div className="if-modal__schema-hint-title">📋 컬럼 안내</div>
+            <ul className="if-modal__schema-hint-list">
+              <li><code>symbol</code> — 종목명 또는 코드 <span className="if-modal__schema-hint-tag if-modal__schema-hint-tag--required">필수</span></li>
+              <li><code>weight</code> — 비중, 0~1 사이 (합계 1.0 권장) <span className="if-modal__schema-hint-tag if-modal__schema-hint-tag--required">필수</span></li>
+              <li><code>quantity</code> — 보유 수량 <span className="if-modal__schema-hint-tag">선택</span></li>
+              <li><code>avg_price</code> — 평단가 <span className="if-modal__schema-hint-tag">선택</span></li>
+            </ul>
           </div>
 
           {/* 텍스트 입력 */}
