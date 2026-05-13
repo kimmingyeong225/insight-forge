@@ -5,7 +5,8 @@ import { evaluateGrade } from '../core/vizRouter.js';
  * viz-rules.md 4.4 항목의 KpiCard 스타일을 따름
  */
 export default function KpiCard({ label, value, format, metricId, isCustom = false, tooltip = null }) {
-  const grade = evaluateGrade(metricId, value);
+  const hasValue = value != null && !(typeof value === 'number' && Number.isNaN(value));
+  const grade = hasValue ? evaluateGrade(metricId, value) : null;
   const formattedValue = format(value);
 
   return (
@@ -34,7 +35,7 @@ export default function KpiCard({ label, value, format, metricId, isCustom = fal
           ? String(formattedValue) 
           : '—'}
       </div>
-      {grade.label && (
+      {hasValue && grade?.label && (
         <span
           className="if-kpi__grade"
           style={{ color: grade.color, background: grade.bg }}
