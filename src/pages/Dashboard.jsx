@@ -209,9 +209,7 @@ export default function Dashboard() {
                 className="if-select"
                 value={userDataset ? '__user__' : datasetId}
                 onChange={(e) => {
-                  if (e.target.value === '__upload__') {
-                    openUploader();
-                  } else if (e.target.value !== '__user__') {
+                  if (e.target.value !== '__user__') {
                     setDataset(e.target.value);
                   }
                 }}
@@ -221,7 +219,6 @@ export default function Dashboard() {
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
                 {userDataset && <option value="__user__">📤 {userDataset.name}</option>}
-                <option value="__upload__">⬆ 데이터 업로드...</option>
               </select>
             </ControlField>
           )}
@@ -392,7 +389,7 @@ export default function Dashboard() {
             <div className="if-scenario-hint" role="status">
               <span className="if-scenario-hint__icon">💡</span>
               <span className="if-scenario-hint__text">
-                시나리오를 바꾸면 화면 구성이 자동으로 재구성됩니다.
+                현재 샘플 포트폴리오로 분석 중입니다. 내 데이터를 업로드하면 맞춤 인사이트를 생성할 수 있습니다.
               </span>
               <button
                 type="button"
@@ -482,6 +479,23 @@ export default function Dashboard() {
               </div>
             )}
           </section>
+
+          {/* Hero 아래 업로드 CTA — 더미 데이터 모드 (LIVE/업로드 적용 둘 다 아님) 일 때만 노출 */}
+          {!isLiveMode && !userDataset && (
+            <div className="if-cta-upload" role="region" aria-label="포트폴리오 업로드 안내">
+              <p className="if-cta-upload__hint">
+                샘플 데이터로 분석 중입니다.<br/>
+                보유 종목 파일을 업로드하면 맞춤형 인사이트를 생성할 수 있습니다.
+              </p>
+              <button
+                type="button"
+                className="if-cta-upload__btn"
+                onClick={openUploader}
+              >
+                📁 내 포트폴리오 업로드
+              </button>
+            </div>
+          )}
 
           {/* KPI — 자체 지표 (강조) + 기본 지표 (보조) 2단 구조 */}
           {(() => {
